@@ -207,9 +207,7 @@ def test_validation_occurs_before_publication(
     assert list((tmp_path / "blobs" / "sources").iterdir()) == []
 
 
-def test_pdf_import_is_lazy_and_runs_when_used(
-    tmp_path: Path, pdf_bytes: bytes
-) -> None:
+def test_pdf_validation_keeps_pdfium_in_child(tmp_path: Path, pdf_bytes: bytes) -> None:
     path = tmp_path / "probe.pdf"
     path.write_bytes(pdf_bytes)
     result = run(
@@ -222,7 +220,7 @@ def test_pdf_import_is_lazy_and_runs_when_used(
             "from article_graph.document_format import FormatValidator\n"
             "assert 'pypdfium2' not in sys.modules\n"
             "FormatValidator().validate(Path(sys.argv[1]), 'application/pdf')\n"
-            "assert 'pypdfium2' in sys.modules\n",
+            "assert 'pypdfium2' not in sys.modules\n",
             str(path),
         ],
         capture_output=True,

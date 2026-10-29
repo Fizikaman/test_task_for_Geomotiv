@@ -1,12 +1,13 @@
 """Content validation only: no text extraction, rendering or provider calls."""
 
 import codecs
-from enum import StrEnum
+import sys
+from enum import IntEnum, StrEnum
 from pathlib import Path
-
-lazy import pypdfium2 as pdfium
+lazy import subprocess
 
 from article_graph.domain import ErrorCode
+from article_graph.settings import Limits
 
 
 class DocumentError(Exception):
@@ -22,7 +23,16 @@ class DocumentFormat(StrEnum):
     PDF = "application/pdf"
 
 
+class PdfValidationExit(IntEnum):
+    SUCCESS = 0
+    INVALID = 1
+    LIMIT = 2
+
+
 class FormatValidator:
+    def __init__(self, limits: Limits | None = None) -> None:
+        self._limits = limits or Limits()
+
     def validate(self, path: Path, content_type: str) -> DocumentFormat:
         declared = content_type.partition(";")[0].strip().lower()
         if declared not in {"text/plain", "text/markdown", "application/pdf"}:
@@ -33,14 +43,31 @@ class FormatValidator:
             if is_pdf:
                 if declared != "application/pdf":
                     raise DocumentError(ErrorCode.UNSUPPORTED_MEDIA_TYPE)
-                # Opening the document checks the PDF structure. Full page/content
-                # validation and resource budgets belong to the later PDF pipeline.
+                # Keep even ingestion validation out of this process. Call this
+                # synchronous storage interface off the API event loop.
                 try:
-                    with pdfium.PdfDocument(path) as document:
-                        if len(document) == 0:
-                            raise DocumentError(ErrorCode.INVALID_DOCUMENT)
-                except pdfium.PdfiumError:
-                    raise DocumentError(ErrorCode.INVALID_DOCUMENT) from None
+                    result = subprocess.run(
+                        [
+                            sys.executable,
+                            "-m",
+                            "article_graph.pdf_worker",
+                            "--validate",
+                            str(path.resolve()),
+                            self._limits.model_dump_json(),
+                        ],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        timeout=self._limits.pdf_timeout_seconds,
+                        check=False,
+                    )
+                except subprocess.TimeoutExpired:
+                    raise DocumentError(ErrorCode.PROCESSING_TIMEOUT) from None
+                if result.returncode != PdfValidationExit.SUCCESS:
+                    raise DocumentError(
+                        ErrorCode.LIMIT_EXCEEDED
+                        if result.returncode == PdfValidationExit.LIMIT
+                        else ErrorCode.INVALID_DOCUMENT
+                    )
                 return DocumentFormat.PDF
             if declared == "application/pdf":
                 raise DocumentError(ErrorCode.UNSUPPORTED_MEDIA_TYPE)

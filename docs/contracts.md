@@ -211,6 +211,10 @@ page_default ≤ page_max.
 | upload_bytes | 2097152 |
 | pdf_pages | 20 |
 | page_pixels | 4000000 |
+| pdf_total_pixels | 40000000 |
+| pdf_dpi | 144 |
+| pdf_memory_bytes | 536870912 |
+| pdf_timeout_seconds | 30 |
 | chunks / llm_calls | 20 / 20 |
 | chunk_chars / chunk_overlap_chars | 8000 / 800 |
 | prepared_chars | 160000 |
@@ -233,4 +237,6 @@ P09: `chunk_overlap_chars` допускает 0 и должен быть мен�
 `prepared_chars` ограничивает суммарный текст chunks с повторениями overlap;
 `chunks` применяется ко всему документу. Превышение — явная ошибка без
 частичного результата. См. [подготовку текста](preparation.md) для ID,
-границ, Unicode offsets и интерфейса будущих PDF-страниц.
+границ и Unicode offsets. P10 добавляет [PDF-preprocessor](pdf.md):
+каждая страница всегда имеет PNG, page-local текст и metadata; парсинг/рендеринг
+в ограниченном subprocess, RLIMIT_AS в Linux, timeout с kill/reap.

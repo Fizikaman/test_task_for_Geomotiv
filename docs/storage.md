@@ -10,7 +10,9 @@ HTTP upload и PDF-пайплайн на этом шаге не добавлен
 from pathlib import Path
 from article_graph.blob_store import BlobNamespace, LocalBlobStore
 
-store = LocalBlobStore(Path("/data/blobs"), max_bytes=settings.limits.upload_bytes)
+store = LocalBlobStore(
+    Path("/data/blobs"), max_bytes=settings.limits.upload_bytes, limits=settings.limits
+)
 with Path("input.md").open("rb") as stream:
     blob = store.put_source(stream, content_type="text/markdown")
 with store.open(BlobNamespace.SOURCES, blob.content_hash) as stream:
@@ -47,9 +49,10 @@ UTF-8, декодируемый строго и потоково, без бин�
 PDFium-парсером; требуется хотя бы одна страница. Несоответствие объявленному
 типу отклоняется. Повреждённый PDF/UTF-8 даёт `invalid_document`, пустой Markdown
 — `validation_error`; неподдерживаемый/несовпавший тип — `unsupported_media_type`.
-PDFium импортируется через PEP 810 только при проверке PDF. Страницы не
-рендерятся, текст не извлекается. Полная проверка страниц, повреждений page
-streams, лимитов и опасных ресурсов относится к будущему PDF-пайплайну.
+С P10 PDFium импортируется через PEP 810 только в ограниченном дочернем процессе.
+Входная проверка учитывает timeout, страницы, Linux memory budget и отклоняет
+encrypted PDF. Страницы здесь не рендерятся, текст не извлекается.
+Полная обработка страниц выполняется [PDF-preprocessor](pdf.md).
 
 Корень должен принадлежать приложению: внешним процессам нельзя менять файлы,
 каталоги и links параллельно с операциями хранилища. Проверка путей не является

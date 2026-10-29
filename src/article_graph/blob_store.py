@@ -11,6 +11,7 @@ from typing import BinaryIO, Protocol
 
 from article_graph.document_format import DocumentError, DocumentFormat, FormatValidator
 from article_graph.domain import ErrorCode
+from article_graph.settings import Limits
 
 
 class BlobNamespace(StrEnum):
@@ -35,12 +36,14 @@ class BlobStore(Protocol):
 
 
 class LocalBlobStore:
-    def __init__(self, root: Path, *, max_bytes: int) -> None:
+    def __init__(
+        self, root: Path, *, max_bytes: int, limits: Limits | None = None
+    ) -> None:
         if max_bytes <= 0:
             raise ValueError("max_bytes must be positive")
         self._root = root.resolve()
         self._max_bytes = max_bytes
-        self._validator = FormatValidator()
+        self._validator = FormatValidator(limits)
         self._root.mkdir(parents=True, exist_ok=True)
         for namespace in BlobNamespace:
             self._checked(self._root / namespace.value).mkdir(exist_ok=True)

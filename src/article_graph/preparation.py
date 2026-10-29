@@ -56,19 +56,25 @@ def prepare_markdown(
 
 
 def prepare_sources(
-    sources: tuple[SourceText, ...], *, revision_id: UUID, limits: Limits
+    sources: tuple[SourceText, ...],
+    *,
+    revision_id: UUID,
+    limits: Limits,
+    allow_empty: bool = False,
 ) -> PreparedDocument:
     """Page-local spans, document-wide budgets including repeated overlap.
 
     Empty PDF page text is retained for future visual extraction. A document
-    without any text is rejected here; image-only PDF preparation belongs to P10.
+    without any text is rejected unless explicitly preparing rendered PDF pages.
     No partial result escapes if any source or the aggregate exceeds a budget.
     """
     if len({source.source_id for source in sources}) != len(sources):
         raise ValueError("duplicate source identity")
     if sum(len(source.text) for source in sources) > limits.prepared_chars:
         raise DocumentError(ErrorCode.LIMIT_EXCEEDED)
-    if not any(source.text.strip("\ufeff \t\r\n") for source in sources):
+    if not allow_empty and not any(
+        source.text.strip("\ufeff \t\r\n") for source in sources
+    ):
         raise DocumentError(ErrorCode.VALIDATION_ERROR)
     chunks: list[TextChunk] = []
     total = 0

@@ -93,3 +93,17 @@ Windows-клиентом против изолированной Linux Neo4j 5.2
 Lazy PyJWT проверен в чистом процессе: отсутствует после импорта приложения,
 загружается при выдаче JWT, encode/decode успешно выполняются.
 Политика replay, проверки и ограничения: [auth.md](auth.md).
+
+## P10: PDF parsing и rendering
+
+30 октября 2026: `pypdfium2==5.14.0` из существующего frozen lock проверен
+для извлечения текста и полного RGB PNG на обычном CPython 3.15.2 Windows
+x86_64 и `python:3.15.2-slim` Linux x86_64. PDFium импортируется через PEP 810
+в отдельном subprocess после Linux RLIMIT_AS; import API не загружает renderer.
+PNG кодируется stdlib, pypdf/Pillow не добавлены. Frozen sync, Ruff lint/format
+и Pyrefly strict прошли на обеих платформах. Windows общий pytest:
+333 passed, 66 skipped; Linux целевой PDF/preparation/storage:
+89 passed, 1 skipped. Все 20 тестов P10 прошли в Linux, включая memory limit.
+Тестовый контейнер ограничен 1 GiB и удалён после прогона, production volumes
+не подключались. Полный Linux pytest, граф/очереди и LLM не запускались.
+Подробности, ограничения и воспроизводимая команда: [pdf.md](pdf.md).
