@@ -281,6 +281,10 @@ def test_limit_settings_override_and_invalid_budgets(
     monkeypatch.setenv("ARTICLE_GRAPH_APP_TOKEN", "test-token-" * 4)
     monkeypatch.setenv("ARTICLE_GRAPH_JWT_ACCESS_KEY", "test-access-key-" * 4)
     monkeypatch.setenv("ARTICLE_GRAPH_JWT_REFRESH_KEY", "test-refresh-key-" * 4)
+    monkeypatch.setenv("ARTICLE_GRAPH_LLM__BASE_URL", "https://provider.test/v1")
+    monkeypatch.setenv("ARTICLE_GRAPH_LLM__API_KEY", "test-key-only")
+    monkeypatch.setenv("ARTICLE_GRAPH_LLM__TEXT_MODEL", "test-text-model")
+    monkeypatch.setenv("ARTICLE_GRAPH_LLM__OUTPUT_MODE", "json_object")
     monkeypatch.setenv("ARTICLE_GRAPH_LIMITS__CHARACTERS", "7")
     assert Settings().limits.characters == 7
     for field in Limits.model_fields:

@@ -4,6 +4,7 @@ from pathlib import Path
 lazy from subprocess import run
 
 import pytest
+from fastapi import status as http_status
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
@@ -19,6 +20,10 @@ def isolated_settings(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
             monkeypatch.delenv(name)
     monkeypatch.setenv("ARTICLE_GRAPH_JWT_ACCESS_KEY", "test-access-key-" * 4)
     monkeypatch.setenv("ARTICLE_GRAPH_JWT_REFRESH_KEY", "test-refresh-key-" * 4)
+    monkeypatch.setenv("ARTICLE_GRAPH_LLM__BASE_URL", "https://provider.test/v1")
+    monkeypatch.setenv("ARTICLE_GRAPH_LLM__API_KEY", "test-key-only")
+    monkeypatch.setenv("ARTICLE_GRAPH_LLM__TEXT_MODEL", "test-text-model")
+    monkeypatch.setenv("ARTICLE_GRAPH_LLM__OUTPUT_MODE", "json_object")
 
 
 def test_liveness(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -26,10 +31,13 @@ def test_liveness(monkeypatch: pytest.MonkeyPatch) -> None:
     # Liveness is independent of startup/database; lifespan has real integration tests.
     client = TestClient(create_app())
     response = client.get("/health/live")
-    assert response.status_code == 200
+    assert response.status_code == http_status.HTTP_200_OK
     assert response.json() == {"status": "ok"}
-    assert client.get("/openapi.json").status_code == 200
-    assert client.get("/health/ready").status_code == 503
+    assert client.get("/openapi.json").status_code == http_status.HTTP_200_OK
+    assert (
+        client.get("/health/ready").status_code
+        == http_status.HTTP_503_SERVICE_UNAVAILABLE
+    )
 
 
 def test_required_settings_fail_before_serving() -> None:

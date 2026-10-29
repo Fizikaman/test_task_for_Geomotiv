@@ -6,6 +6,7 @@ from typing import Literal
 lazy from asyncio import to_thread
 
 from fastapi import FastAPI
+from fastapi import status as http_status
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 from starlette.requests import Request
@@ -49,7 +50,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             {"error": {"code": error.code.value, "message": "Authentication failed"}},
             status_code=error.status_code,
             headers={"WWW-Authenticate": "Bearer", "Cache-Control": "no-store"}
-            if error.status_code == 401
+            if error.status_code == http_status.HTTP_401_UNAUTHORIZED
             else {"Cache-Control": "no-store"},
         )
 
@@ -60,7 +61,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # FastAPI's default detail contains raw input, including auth request bodies.
         return JSONResponse(
             {"error": {"code": "validation_error", "message": "Invalid request"}},
-            status_code=422,
+            status_code=http_status.HTTP_422_UNPROCESSABLE_CONTENT,
             headers={"Cache-Control": "no-store"},
         )
 
@@ -69,11 +70,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/health/ready", tags=["health"])
     def readiness() -> JSONResponse:
         if app.state.driver is None:
-            return JSONResponse({"status": "unavailable"}, status_code=503)
+            return JSONResponse(
+                {"status": "unavailable"},
+                status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         try:
             require_ready(app.state.driver, configuration.neo4j)
         except SchemaNotReady, Neo4jError, DriverError:
-            return JSONResponse({"status": "unavailable"}, status_code=503)
+            return JSONResponse(
+                {"status": "unavailable"},
+                status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         return JSONResponse({"status": "ok"})
 
     @app.get("/health/live", response_model=Liveness, tags=["health"])

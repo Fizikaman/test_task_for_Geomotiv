@@ -3,6 +3,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response
+from fastapi import status as http_status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 lazy from neo4j.exceptions import DriverError, Neo4jError
 
@@ -46,7 +47,9 @@ Access = Annotated[Claims, Depends(require_access)]
 def get_refresh_sessions(request: Request, settings: Configuration) -> RefreshSessions:
     driver = request.app.state.driver
     if driver is None:
-        raise AuthError(ErrorCode.SERVICE_UNAVAILABLE, 503)
+        raise AuthError(
+            ErrorCode.SERVICE_UNAVAILABLE, http_status.HTTP_503_SERVICE_UNAVAILABLE
+        )
     return RefreshSessions(driver, settings.neo4j)
 
 
@@ -62,7 +65,9 @@ def token(
     try:
         get_refresh_sessions(request, settings).create(pair)
     except Neo4jError, DriverError:
-        raise AuthError(ErrorCode.SERVICE_UNAVAILABLE, 503) from None
+        raise AuthError(
+            ErrorCode.SERVICE_UNAVAILABLE, http_status.HTTP_503_SERVICE_UNAVAILABLE
+        ) from None
     response.headers["Cache-Control"] = "no-store"
     response.headers["Pragma"] = "no-cache"
     return pair.tokens
@@ -81,7 +86,9 @@ def refresh(
     try:
         result = get_refresh_sessions(request, settings).rotate(claims, raw, pair)
     except Neo4jError, DriverError:
-        raise AuthError(ErrorCode.SERVICE_UNAVAILABLE, 503) from None
+        raise AuthError(
+            ErrorCode.SERVICE_UNAVAILABLE, http_status.HTTP_503_SERVICE_UNAVAILABLE
+        ) from None
     if result != "ok":
         raise AuthError(ErrorCode(result))
     response.headers["Cache-Control"] = "no-store"

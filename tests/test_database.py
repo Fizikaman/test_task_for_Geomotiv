@@ -7,6 +7,7 @@ from uuid import uuid4
 lazy from subprocess import run
 
 import pytest
+from fastapi import status as http_status
 from fastapi.testclient import TestClient
 lazy from neo4j import Driver, Session
 lazy from neo4j.exceptions import ConstraintError
@@ -22,7 +23,7 @@ from article_graph.schema import (
     require_ready,
     validate_embedding,
 )
-from article_graph.settings import Neo4jSettings, Settings
+from article_graph.settings import LLMSettings, Neo4jSettings, Settings
 
 
 @pytest.fixture
@@ -202,7 +203,10 @@ def test_dimension_mismatch(
 
 @pytest.mark.integration
 def test_missing_index_blocks_startup(
-    neo4j_driver: Driver, neo4j_settings: Neo4jSettings, session: Session
+    neo4j_driver: Driver,
+    neo4j_settings: Neo4jSettings,
+    session: Session,
+    llm_settings: LLMSettings,
 ) -> None:
     session.run(f"DROP INDEX {VECTOR_INDEX}").consume()
     try:
@@ -215,6 +219,7 @@ def test_missing_index_blocks_startup(
                 jwt_access_key="test-access-key-" * 4,
                 jwt_refresh_key="test-refresh-key-" * 4,
                 neo4j=neo4j_settings,
+                llm=llm_settings,
             )
         )
         with pytest.raises(SchemaNotReady, match="missing"):
@@ -257,24 +262,30 @@ def test_cli(neo4j_settings: Neo4jSettings) -> None:
 
 
 @pytest.mark.integration
-def test_app_lifecycle(neo4j_settings: Neo4jSettings, neo4j_driver: Driver) -> None:
+def test_app_lifecycle(
+    neo4j_settings: Neo4jSettings, neo4j_driver: Driver, llm_settings: LLMSettings
+) -> None:
     settings = Settings(
         _env_file=None,
         app_token="test-token-" * 4,
         jwt_access_key="test-access-key-" * 4,
         jwt_refresh_key="test-refresh-key-" * 4,
         neo4j=neo4j_settings,
+        llm=llm_settings,
     )
     app = create_app(settings)
     with TestClient(app) as client:
         assert app.state.driver is not None
-        assert client.get("/health/ready").status_code == 200
-        assert client.get("/health/live").status_code == 200
+        assert client.get("/health/ready").status_code == http_status.HTTP_200_OK
+        assert client.get("/health/live").status_code == http_status.HTTP_200_OK
         with neo4j_driver.session(database=neo4j_settings.database) as session:
             session.run(f"DROP INDEX {VECTOR_INDEX}").consume()
         try:
-            assert client.get("/health/ready").status_code == 503
-            assert client.get("/health/live").status_code == 200
+            assert (
+                client.get("/health/ready").status_code
+                == http_status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+            assert client.get("/health/live").status_code == http_status.HTTP_200_OK
         finally:
             init_schema(neo4j_driver, neo4j_settings)
     assert app.state.driver is None

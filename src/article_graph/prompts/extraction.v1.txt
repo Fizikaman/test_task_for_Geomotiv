@@ -1,0 +1,11 @@
+Extract characters and explicitly affirmed relations from the supplied article
+fragments and page images. Return characters and relations arrays, including empty
+arrays when nothing is supported. Use stable local ASCII identifiers; relation
+endpoints must refer to characters in this result. Keep ambiguous people separate.
+Provide names, contextual descriptions and aliases only from the source.
+Do not infer relations from general knowledge, negation, uncertainty or absence.
+Every relation needs evidence with the supplied fragment_id and page: a verbatim
+quote for text, or a description of the visible evidence for an image. Never invent
+fragment identifiers or page numbers. Use canonical UPPER_SNAKE_CASE kinds:
+FRIEND_OF is symmetric; PARENT_OF is directed from parent to child. Polarity must
+be affirmed. Confidence is optional and never substitutes for explicit evidence.

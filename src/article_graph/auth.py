@@ -7,6 +7,7 @@ from time import time
 from typing import Literal
 from uuid import UUID, uuid4
 
+from fastapi import status as http_status
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError
 lazy import jwt
 
@@ -19,7 +20,9 @@ type Purpose = Literal["access", "refresh"]
 
 class AuthError(Exception):
     def __init__(
-        self, code: ErrorCode = ErrorCode.UNAUTHORIZED, status_code: int = 401
+        self,
+        code: ErrorCode = ErrorCode.UNAUTHORIZED,
+        status_code: int = http_status.HTTP_401_UNAUTHORIZED,
     ) -> None:
         super().__init__(code.value)
         self.code = code

@@ -12,6 +12,7 @@ from uuid import uuid4
 import jwt
 import pytest
 from fastapi import FastAPI
+from fastapi import status as http_status
 from fastapi.testclient import TestClient
 from neo4j import Driver
 from neo4j.exceptions import ConstraintError, ServiceUnavailable
@@ -31,11 +32,13 @@ from article_graph.auth import (
 )
 from article_graph.auth_routes import Access
 from article_graph.refresh_sessions import RefreshSessions, token_hash
-from article_graph.settings import Neo4jSettings, Settings
+from article_graph.settings import LLMSettings, Neo4jSettings, Settings
 
 
 @pytest.fixture
-def settings(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Settings:
+def settings(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, llm_settings: LLMSettings
+) -> Settings:
     monkeypatch.chdir(tmp_path)
     for name in os.environ:
         if name.startswith("ARTICLE_GRAPH_"):
@@ -46,6 +49,7 @@ def settings(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Settings:
         jwt_access_key="test-access-key-" * 4,
         jwt_refresh_key="test-refresh-key-" * 4,
         app_id=f"p04-test-{uuid4()}",
+        llm=llm_settings,
     )
 
 
@@ -112,7 +116,7 @@ def assert_denied(client: TestClient, token: str, purpose: Purpose = "access") -
         if purpose == "access"
         else client.post("/auth/refresh", json={"refresh_token": token})
     )
-    assert response.status_code == 401
+    assert response.status_code == http_status.HTTP_401_UNAUTHORIZED
     assert response.headers["WWW-Authenticate"] == "Bearer"
     assert response.json() == {
         "error": {"code": "unauthorized", "message": "Authentication failed"}
@@ -124,7 +128,7 @@ def exchange(client: TestClient, settings: Settings) -> TokenPair:
     response = client.post(
         "/auth/token", json={"app_token": settings.app_token.get_secret_value()}
     )
-    assert response.status_code == 200
+    assert response.status_code == http_status.HTTP_200_OK
     assert response.headers["Cache-Control"] == "no-store"
     assert response.headers["Pragma"] == "no-cache"
     return TokenPair.model_validate(response.json())
@@ -167,7 +171,7 @@ def test_unicode_app_token(settings: Settings) -> None:
 @pytest.mark.parametrize("bad", ["wrong-app-token", "пароль", "x" * 32])
 def test_bad_app_token(client: TestClient, bad: str) -> None:
     response = client.post("/auth/token", json={"app_token": bad})
-    assert response.status_code == 401
+    assert response.status_code == http_status.HTTP_401_UNAUTHORIZED
     assert response.json()["error"]["code"] == "unauthorized"
     assert bad not in response.text
 
@@ -187,12 +191,12 @@ def test_safe_validation(
     client: TestClient, path: str, body: dict[str, object]
 ) -> None:
     response = client.post(path, json=body)
-    assert response.status_code == 422
+    assert response.status_code == http_status.HTTP_422_UNPROCESSABLE_CONTENT
     assert response.json() == {
         "error": {"code": "validation_error", "message": "Invalid request"}
     }
     response = client.post(path, content='{"secret":"do-not-echo",invalid-json')
-    assert response.status_code == 422
+    assert response.status_code == http_status.HTTP_422_UNPROCESSABLE_CONTENT
     assert "do-not-echo" not in response.text
 
 
@@ -201,7 +205,7 @@ def test_access_required(client: TestClient, header: str | None) -> None:
     response = client.get(
         "/test/protected", headers={} if header is None else {"Authorization": header}
     )
-    assert response.status_code == 401
+    assert response.status_code == http_status.HTTP_401_UNAUTHORIZED
     assert response.headers["WWW-Authenticate"] == "Bearer"
 
 
@@ -212,9 +216,9 @@ def test_access_and_public_endpoints(client: TestClient, settings: Settings) -> 
         headers={"Authorization": f"Bearer {pair.tokens.access_token}"},
     )
     assert response.json() == {"app_id": settings.app_id}
-    assert client.get("/health/live").status_code == 200
-    assert client.get("/openapi.json").status_code == 200
-    assert client.get("/docs").status_code == 200
+    assert client.get("/health/live").status_code == http_status.HTTP_200_OK
+    assert client.get("/openapi.json").status_code == http_status.HTTP_200_OK
+    assert client.get("/docs").status_code == http_status.HTTP_200_OK
     schema = client.get("/openapi.json").json()
     assert schema["paths"]["/test/protected"]["get"]["security"] == [{"HTTPBearer": []}]
     assert "/auth/token" in schema["paths"]
@@ -282,7 +286,7 @@ def test_storage_unavailable_is_safe(
     response = client.post(
         "/auth/token", json={"app_token": settings.app_token.get_secret_value()}
     )
-    assert response.status_code == 503
+    assert response.status_code == http_status.HTTP_503_SERVICE_UNAVAILABLE
 
     def fail_create(self: RefreshSessions, pair: object) -> None:
         raise ServiceUnavailable("secret-driver-message")
@@ -299,7 +303,7 @@ def test_storage_unavailable_is_safe(
         ("/auth/refresh", {"refresh_token": issue_pair(settings).tokens.refresh_token}),
     ):
         response = client.post(path, json=body)
-        assert response.status_code == 503
+        assert response.status_code == http_status.HTTP_503_SERVICE_UNAVAILABLE
         assert response.json()["error"]["code"] == "service_unavailable"
         assert "secret-driver-message" not in response.text
 
@@ -315,7 +319,9 @@ def test_jwt_lazy_runtime() -> None:
             "from article_graph.settings import Settings\n"
             "from article_graph.auth import issue_pair, decode_token\n"
             "s = Settings(_env_file=None, app_token='app-' * 10, "
-            "jwt_access_key='access-' * 10, jwt_refresh_key='refresh-' * 10)\n"
+            "jwt_access_key='access-' * 10, jwt_refresh_key='refresh-' * 10, "
+            "llm={'base_url':'https://provider.test/v1', 'api_key':'test', "
+            "'text_model':'test-model', 'output_mode':'json_object'})\n"
             "p = issue_pair(s)\n"
             "assert 'jwt' in sys.modules\n"
             "assert decode_token(p.tokens.access_token, 'access', s).purpose == 'access'\n",
@@ -341,7 +347,7 @@ def test_rotation_replay_and_hash_storage(
     response = db_client.post(
         "/auth/refresh", json={"refresh_token": initial.refresh_token}
     )
-    assert response.status_code == 200
+    assert response.status_code == http_status.HTTP_200_OK
     rotated = TokenPair.model_validate(response.json())
     assert rotated.access_token != initial.access_token
     assert rotated.refresh_token != initial.refresh_token
@@ -367,7 +373,7 @@ def test_rotation_replay_and_hash_storage(
     replay = db_client.post(
         "/auth/refresh", json={"refresh_token": initial.refresh_token}
     )
-    assert replay.status_code == 401
+    assert replay.status_code == http_status.HTTP_401_UNAUTHORIZED
     assert replay.json()["error"]["code"] == "refresh_reused"
     assert_denied(db_client, rotated.refresh_token, "refresh")
     # Access remains valid until exp, as defined by the contract.
@@ -376,7 +382,7 @@ def test_rotation_replay_and_hash_storage(
             "/test/protected",
             headers={"Authorization": f"Bearer {initial.access_token}"},
         ).status_code
-        == 200
+        == http_status.HTTP_200_OK
     )
     for secret in (
         settings.app_token.get_secret_value(),
@@ -393,7 +399,7 @@ def test_rotation_replay_and_hash_storage(
         db_client.post(
             "/auth/refresh", json={"refresh_token": other.refresh_token}
         ).status_code
-        == 200
+        == http_status.HTTP_200_OK
     )
 
 
@@ -415,9 +421,14 @@ def test_concurrent_refresh(
     with ThreadPoolExecutor(max_workers=2) as pool:
         futures = [pool.submit(refresh) for _ in range(2)]
         results = [future.result(timeout=20) for future in futures]
-    assert sorted(status for status, _ in results) == [200, 401]
-    winner = next(body for status, body in results if status == 200)
-    loser = next(body for status, body in results if status == 401)
+    assert sorted(status for status, _ in results) == [
+        http_status.HTTP_200_OK,
+        http_status.HTTP_401_UNAUTHORIZED,
+    ]
+    winner = next(body for status, body in results if status == http_status.HTTP_200_OK)
+    loser = next(
+        body for status, body in results if status == http_status.HTTP_401_UNAUTHORIZED
+    )
     assert loser["error"] == {
         "code": "refresh_reused",
         "message": "Authentication failed",
@@ -451,7 +462,7 @@ def test_invalid_refresh_cannot_revoke_family(
         db_client.post(
             "/auth/refresh", json={"refresh_token": pair.refresh_token}
         ).status_code
-        == 200
+        == http_status.HTTP_200_OK
     )
 
 
@@ -491,7 +502,7 @@ def test_rotation_rolls_back_consumption_if_successor_cannot_be_created(
         db_client.post(
             "/auth/refresh", json={"refresh_token": pair.refresh_token}
         ).status_code
-        == 200
+        == http_status.HTTP_200_OK
     )
 
 
@@ -506,7 +517,7 @@ def test_ancestor_replay_serializes_with_descendant_rotation(
     rotated = db_client.post(
         "/auth/refresh", json={"refresh_token": first.refresh_token}
     )
-    assert rotated.status_code == 200
+    assert rotated.status_code == http_status.HTTP_200_OK
     second = TokenPair.model_validate(rotated.json())
     barrier = Barrier(2)
 
@@ -515,16 +526,16 @@ def test_ancestor_replay_serializes_with_descendant_rotation(
         response = db_client.post("/auth/refresh", json={"refresh_token": raw})
         return response.status_code, (
             TokenPair.model_validate(response.json())
-            if response.status_code == 200
+            if response.status_code == http_status.HTTP_200_OK
             else None
         )
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         replay = pool.submit(refresh, first.refresh_token)
         rotation = pool.submit(refresh, second.refresh_token)
-        assert replay.result(timeout=20)[0] == 401
+        assert replay.result(timeout=20)[0] == http_status.HTTP_401_UNAUTHORIZED
         status, successor = rotation.result(timeout=20)
-    assert status in (200, 401)
+    assert status in (http_status.HTTP_200_OK, http_status.HTTP_401_UNAUTHORIZED)
     if successor is not None:
         assert_denied(db_client, successor.refresh_token, "refresh")
     with neo4j_driver.session(database=neo4j_settings.database) as session:

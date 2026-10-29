@@ -8,7 +8,17 @@ lazy from neo4j import Driver
 
 from article_graph.database import open_database
 from article_graph.schema import init_schema
-from article_graph.settings import Neo4jSettings
+from article_graph.settings import LLMSettings, Neo4jSettings
+
+
+@pytest.fixture
+def llm_settings() -> LLMSettings:
+    return LLMSettings(
+        base_url="https://provider.test/v1",
+        api_key=SecretStr("test-key-only"),
+        text_model="test-text-model",
+        output_mode="json_object",
+    )
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:

@@ -1,5 +1,8 @@
 """Environment configuration, validated before the application is served."""
 
+from typing import Literal
+from urllib.parse import urlsplit
+
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -49,6 +52,37 @@ class Neo4jSettings(BaseSettings):
     schema_timeout_seconds: int = Field(default=60, gt=0)
 
 
+class LLMSettings(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True, hide_input_in_errors=True)
+
+    base_url: str
+    api_key: SecretStr = Field(min_length=1)
+    text_model: str = Field(min_length=1, pattern=r"\S")
+    vision_model: str | None = Field(default=None, min_length=1, pattern=r"\S")
+    timeout_seconds: float = Field(default=30, gt=0, allow_inf_nan=False)
+    output_mode: Literal["json_schema", "json_object"]
+    max_tokens: int = Field(default=4096, gt=0)
+    max_response_bytes: int = Field(default=2_000_000, gt=0)
+
+    @model_validator(mode="after")
+    def valid_endpoint(self) -> LLMSettings:
+        if not self.api_key.get_secret_value().strip():
+            raise ValueError("LLM API key must not be blank")
+        url = urlsplit(self.base_url)
+        if (
+            url.scheme not in {"http", "https"}
+            or not url.hostname
+            or url.username is not None
+            or url.password is not None
+            or url.query
+            or url.fragment
+        ):
+            raise ValueError(
+                "LLM base URL must be an HTTP endpoint without credentials"
+            )
+        return self
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="ARTICLE_GRAPH_",
@@ -67,6 +101,7 @@ class Settings(BaseSettings):
     app_id: str = Field(default="article-graph-app", min_length=1)
     limits: Limits = Field(default_factory=Limits)
     neo4j: Neo4jSettings = Field(default_factory=Neo4jSettings)
+    llm: LLMSettings
 
     @model_validator(mode="after")
     def separate_credentials(self) -> Settings:
