@@ -81,3 +81,15 @@ Pyrefly strict без ошибок и предупреждений; `pytest --ne
 а обращение к lazy symbol исполняет импорт. Required readiness выполняется
 явно до обслуживания API. Проверки и ограничения схемы: [neo4j.md](neo4j.md).
 AI/очереди и рабочие данные не использовались.
+
+## P04: JWT и ротация Refresh
+
+PyJWT 2.15.1 теперь добавлен в зависимости и frozen lock. 29 октября 2026:
+Windows CPython 3.15.2 / uv 0.13.6 — frozen sync, Ruff check/format check,
+Pyrefly strict (0 errors), 152 passed с `--neo4j` (28 integration).
+Linux `python:3.15.2-slim` — те же frozen sync, Ruff/Pyrefly и
+124 passed, 28 integration skipped. Реальные транзакции выполнялись
+Windows-клиентом против изолированной Linux Neo4j 5.26.0 Community.
+Lazy PyJWT проверен в чистом процессе: отсутствует после импорта приложения,
+загружается при выдаче JWT, encode/decode успешно выполняются.
+Политика replay, проверки и ограничения: [auth.md](auth.md).

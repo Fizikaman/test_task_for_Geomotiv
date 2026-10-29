@@ -17,6 +17,8 @@ def isolated_settings(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     for name in os.environ:
         if name.startswith("ARTICLE_GRAPH_"):
             monkeypatch.delenv(name)
+    monkeypatch.setenv("ARTICLE_GRAPH_JWT_ACCESS_KEY", "test-access-key-" * 4)
+    monkeypatch.setenv("ARTICLE_GRAPH_JWT_REFRESH_KEY", "test-refresh-key-" * 4)
 
 
 def test_liveness(monkeypatch: pytest.MonkeyPatch) -> None:

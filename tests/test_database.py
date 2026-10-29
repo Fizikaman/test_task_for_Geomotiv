@@ -209,7 +209,13 @@ def test_missing_index_blocks_startup(
         with pytest.raises(SchemaNotReady, match="missing"):
             require_ready(neo4j_driver, neo4j_settings)
         app = create_app(
-            Settings(_env_file=None, app_token="test-token-" * 4, neo4j=neo4j_settings)
+            Settings(
+                _env_file=None,
+                app_token="test-token-" * 4,
+                jwt_access_key="test-access-key-" * 4,
+                jwt_refresh_key="test-refresh-key-" * 4,
+                neo4j=neo4j_settings,
+            )
         )
         with pytest.raises(SchemaNotReady, match="missing"):
             with TestClient(app):
@@ -253,7 +259,11 @@ def test_cli(neo4j_settings: Neo4jSettings) -> None:
 @pytest.mark.integration
 def test_app_lifecycle(neo4j_settings: Neo4jSettings, neo4j_driver: Driver) -> None:
     settings = Settings(
-        _env_file=None, app_token="test-token-" * 4, neo4j=neo4j_settings
+        _env_file=None,
+        app_token="test-token-" * 4,
+        jwt_access_key="test-access-key-" * 4,
+        jwt_refresh_key="test-refresh-key-" * 4,
+        neo4j=neo4j_settings,
     )
     app = create_app(settings)
     with TestClient(app) as client:

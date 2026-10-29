@@ -60,5 +60,21 @@ class Settings(BaseSettings):
 
     app_name: str = Field(default="Article Graph", min_length=1)
     app_token: SecretStr = Field(min_length=32)
+    jwt_access_key: SecretStr = Field(min_length=32)
+    jwt_refresh_key: SecretStr = Field(min_length=32)
+    jwt_issuer: str = Field(default="article-graph", min_length=1)
+    jwt_audience: str = Field(default="article-graph-api", min_length=1)
+    app_id: str = Field(default="article-graph-app", min_length=1)
     limits: Limits = Field(default_factory=Limits)
     neo4j: Neo4jSettings = Field(default_factory=Neo4jSettings)
+
+    @model_validator(mode="after")
+    def separate_credentials(self) -> Settings:
+        credentials = (
+            self.app_token.get_secret_value(),
+            self.jwt_access_key.get_secret_value(),
+            self.jwt_refresh_key.get_secret_value(),
+        )
+        if len(set(credentials)) != 3:
+            raise ValueError("App Token, Access and Refresh keys must be distinct")
+        return self

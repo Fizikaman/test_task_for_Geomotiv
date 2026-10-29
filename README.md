@@ -1,7 +1,8 @@
-# Article Graph — P03
+# Article Graph — P04
 
 Минимальный API на обычном CPython **3.15.2**. Для будущих Docker/CI использовать
-ту же ветку 3.15, без free-threaded/JIT. Реализованы каркас API, DTO и схема Neo4j.
+ту же ветку 3.15, без free-threaded/JIT. Реализованы каркас API, DTO, схема Neo4j
+и авторизация с ротацией Refresh.
 
 Нужен uv **0.13.6**. Если установлен старый uv, команды можно запускать через
 `uvx uv==0.13.6 ...`; в созданном окружении доступен `.venv/Scripts/uv.exe` (Windows).
@@ -9,7 +10,8 @@
 ```powershell
 uv sync --frozen
 Copy-Item .env.example .env
-# Задать в .env свой ARTICLE_GRAPH_APP_TOKEN (не менее 32 символов).
+# Задать три разных случайных секрета длиной не менее 32 символов:
+# ARTICLE_GRAPH_APP_TOKEN, ARTICLE_GRAPH_JWT_ACCESS_KEY, ARTICLE_GRAPH_JWT_REFRESH_KEY.
 uv run --frozen article-graph
 ```
 
@@ -17,8 +19,11 @@ uv run --frozen article-graph
 альтернативный запуск: `uv run --frozen uvicorn article_graph.app:create_app --factory`.
 Публичный `GET /health/live` возвращает `{"status":"ok"}` и проверяет только
 работоспособность процесса. Отсутствующий/короткий App Token останавливает создание
-приложения; ошибки настроек скрывают входные значения. В P01 App Token только
-валидируется и хранится в настройках; авторизация добавляется в P04.
+приложения; оба JWT-ключа также обязательны. Ошибки настроек скрывают входные
+значения. `POST /auth/token` обменивает App Token на пару JWT;
+`POST /auth/refresh` ротирует Refresh без действующего Access.
+Формат запросов, политика replay и общая dependency для будущих бизнес-роутеров:
+[docs/auth.md](docs/auth.md).
 Перед запуском API нужно настроить Neo4j и выполнить `init-schema` (см. ниже).
 Startup проверяет доступность БД, constraints/indexes и ONLINE vector index;
 при несовместимой размерности запуск завершается ошибкой. `/health/ready` повторяет
