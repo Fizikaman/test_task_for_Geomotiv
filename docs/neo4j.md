@@ -12,6 +12,11 @@
 `Outbox.outbox_id`, `RefreshSession.session_id`, `RefreshSession.token_hash`,
 `IdempotencyRecord.idempotency_id`. Составные uniqueness constraints:
 `ArticleRevision(article_id, number)` и `IdempotencyRecord(app_id, key)`.
+
+P08 добавляет uniqueness `RegistrationLock.name` для транзакционной защиты
+первичной регистрации и последовательной нумерации ревизий. После обновления
+нужно повторить `init-schema`. Схема записей и порядок блокировок описаны в
+[registration.md](registration.md).
 Таким образом один ключ разрешён разным приложениям, а одинаковый номер —
 разным статьям. Имена персонажей не уникальны; retry допускает несколько Job
 для одной revision. Outbox хранит `job_id`, но не ограничивает число доставок.

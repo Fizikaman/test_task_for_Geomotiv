@@ -20,6 +20,7 @@ UNIQUE_PROPERTIES: tuple[tuple[LiteralString, LiteralString, LiteralString], ...
     ("refresh_hash", "RefreshSession", "token_hash"),
     ("idempotency_id", "IdempotencyRecord", "idempotency_id"),
     ("embedding_space_index", "EmbeddingSpace", "index_name"),
+    ("registration_lock", "RegistrationLock", "name"),
 )
 COMPOSITE_PROPERTIES: tuple[
     tuple[LiteralString, LiteralString, LiteralString, LiteralString], ...
