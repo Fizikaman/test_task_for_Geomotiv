@@ -203,7 +203,8 @@ extraction_invalid, provider_unavailable, processing_timeout либо internal_e
 
 Все численные бюджеты находятся в `Settings.limits` (`Limits` в settings.py).
 Env override: `ARTICLE_GRAPH_LIMITS__PDF_PAGES=10` и аналогично для других полей.
-Все положительны; page_default ≤ page_max.
+Все положительны, кроме допускающего ноль chunk_overlap_chars;
+page_default ≤ page_max.
 
 | Настройка | Default |
 | --- | ---: |
@@ -211,6 +212,8 @@ Env override: `ARTICLE_GRAPH_LIMITS__PDF_PAGES=10` и аналогично дл�
 | pdf_pages | 20 |
 | page_pixels | 4000000 |
 | chunks / llm_calls | 20 / 20 |
+| chunk_chars / chunk_overlap_chars | 8000 / 800 |
+| prepared_chars | 160000 |
 | processing_seconds / provider_timeout_seconds | 300 / 30 |
 | job_attempts / retry_backoff_seconds | 3 / 2 |
 | characters / relations | 100 / 200 |
@@ -225,3 +228,9 @@ chunks/llm_calls/time — на попытку обработки ревизии 
 После разбора Extraction потребитель обязан вызвать `check_limits(settings.limits)`;
 пагинация аналогично использует PageRequest.check_limits. Остальные бюджеты
 будут применяться соответствующими pipeline/HTTP-компонентами в их шагах.
+
+P09: `chunk_overlap_chars` допускает 0 и должен быть меньше `chunk_chars`.
+`prepared_chars` ограничивает суммарный текст chunks с повторениями overlap;
+`chunks` применяется ко всему документу. Превышение — явная ошибка без
+частичного результата. См. [подготовку текста](preparation.md) для ID,
+границ, Unicode offsets и интерфейса будущих PDF-страниц.

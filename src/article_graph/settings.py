@@ -16,6 +16,9 @@ class Limits(BaseModel):
     pdf_pages: int = Field(default=20, gt=0)
     page_pixels: int = Field(default=4_000_000, gt=0)
     chunks: int = Field(default=20, gt=0)
+    chunk_chars: int = Field(default=8_000, gt=0)
+    chunk_overlap_chars: int = Field(default=800, ge=0)
+    prepared_chars: int = Field(default=160_000, gt=0)
     llm_calls: int = Field(default=20, gt=0)
     processing_seconds: int = Field(default=300, gt=0)
     provider_timeout_seconds: int = Field(default=30, gt=0)
@@ -31,6 +34,8 @@ class Limits(BaseModel):
 
     @model_validator(mode="after")
     def pagination_bounds(self) -> Limits:
+        if self.chunk_overlap_chars >= self.chunk_chars:
+            raise ValueError("chunk_overlap_chars must be less than chunk_chars")
         if self.page_default > self.page_max:
             raise ValueError("page_default must not exceed page_max")
         return self

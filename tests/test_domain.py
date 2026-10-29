@@ -288,6 +288,9 @@ def test_limit_settings_override_and_invalid_budgets(
     monkeypatch.setenv("ARTICLE_GRAPH_LIMITS__CHARACTERS", "7")
     assert Settings().limits.characters == 7
     for field in Limits.model_fields:
+        if field == "chunk_overlap_chars":
+            assert Limits(chunk_overlap_chars=0).chunk_overlap_chars == 0
+            continue
         with pytest.raises(ValidationError):
             Limits.model_validate({field: 0})
     with pytest.raises(ValidationError):
