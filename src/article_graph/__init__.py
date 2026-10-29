@@ -1,0 +1,1 @@
+"""Article graph application package."""
