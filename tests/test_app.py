@@ -21,11 +21,13 @@ def isolated_settings(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
 
 def test_liveness(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ARTICLE_GRAPH_APP_TOKEN", "test-token-" * 4)
-    with TestClient(create_app()) as client:
-        response = client.get("/health/live")
-        assert response.status_code == 200
-        assert response.json() == {"status": "ok"}
-        assert client.get("/openapi.json").status_code == 200
+    # Liveness is independent of startup/database; lifespan has real integration tests.
+    client = TestClient(create_app())
+    response = client.get("/health/live")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+    assert client.get("/openapi.json").status_code == 200
+    assert client.get("/health/ready").status_code == 503
 
 
 def test_required_settings_fail_before_serving() -> None:

@@ -1,0 +1,24 @@
+name: geomotiv-p03-test
+services:
+  neo4j-test:
+    image: neo4j:5.26.0-community
+    container_name: geomotiv-p03-neo4j-test
+    ports:
+      - "127.0.0.1:17474:7474"
+      - "127.0.0.1:17687:7687"
+    environment:
+      NEO4J_AUTH: neo4j/geomotiv-isolated-test-only
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+    volumes:
+      - neo4j-test-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p geomotiv-isolated-test-only 'RETURN 1' >/dev/null 2>&1"]
+      interval: 3s
+      timeout: 10s
+      retries: 40
+      start_period: 20s
+volumes:
+  neo4j-test-data:
+    name: geomotiv-p03-neo4j-test-data

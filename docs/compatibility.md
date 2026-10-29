@@ -63,3 +63,21 @@ uv 0.11.23 видел только старую beta-сборку 3.15; испо
 [PyJWT](https://pypi.org/project/PyJWT/2.15.1/),
 [PDFium](https://pypi.org/project/pypdfium2/5.14.0/),
 [PEP 810](https://peps.python.org/pep-0810/).
+
+## P03: реальное подключение Neo4j
+
+29 октября 2026: в зависимости добавлен `neo4j==6.4.1`, frozen lock обновлён.
+На Windows CPython 3.15.2 / uv 0.13.6 прошли frozen sync, Ruff lint/format,
+Pyrefly strict без ошибок и предупреждений; `pytest --neo4j` — 73 passed
+(55 unit/runtime + 18 integration). Integration-набор повторён успешно на
+сохранённом тестовом томе. `docker compose -f docker-compose.test.yml config
+--quiet` и `up -d --wait` прошли, Neo4j 5.26.0 Community healthy.
+
+В Linux `python:3.15.2-slim` с тем же frozen lock/uv прошли установка,
+55 unit/runtime тестов и `init-schema` с подключением к настоящей тестовой БД.
+Секреты/.env в Linux-контейнер не монтировались. Полный integration-набор
+в Linux не запускался; он выполнен с Windows-клиента против Linux Neo4j.
+Локальный subprocess-тест подтверждает, что импорт API не загружает `neo4j`,
+а обращение к lazy symbol исполняет импорт. Required readiness выполняется
+явно до обслуживания API. Проверки и ограничения схемы: [neo4j.md](neo4j.md).
+AI/очереди и рабочие данные не использовались.

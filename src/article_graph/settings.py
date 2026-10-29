@@ -33,6 +33,22 @@ class Limits(BaseModel):
         return self
 
 
+class Neo4jSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="ARTICLE_GRAPH_NEO4J__",
+        extra="forbid",
+        frozen=True,
+        hide_input_in_errors=True,
+    )
+
+    uri: str = "bolt://127.0.0.1:7687"
+    username: str = "neo4j"
+    password: SecretStr = SecretStr("")
+    database: str = "neo4j"
+    embedding_dimensions: int = Field(default=1024, ge=1, le=4096)
+    schema_timeout_seconds: int = Field(default=60, gt=0)
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="ARTICLE_GRAPH_",
@@ -45,3 +61,4 @@ class Settings(BaseSettings):
     app_name: str = Field(default="Article Graph", min_length=1)
     app_token: SecretStr = Field(min_length=32)
     limits: Limits = Field(default_factory=Limits)
+    neo4j: Neo4jSettings = Field(default_factory=Neo4jSettings)
