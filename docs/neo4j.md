@@ -22,6 +22,11 @@ Range indexes: `Article.latest_source_hash` (хеш последнего вхо�
 `RelationAssertion.revision_id`. Имена свойств — контракт для будущих репозиториев.
 Уникальные constraints имеют собственные backing range indexes.
 
+P06 добавляет uniqueness `EmbeddingSpace.index_name`: привязка vector index
+к модели, digest, размерности и версии подготовки входа. После обновления нужно
+повторить `init-schema`; затем выполнить embedding probe/init. Подробности и
+отказ миграции неизвестных векторов — [embeddings.md](embeddings.md).
+
 `Character.embedding` — обычный список чисел, не тип `VECTOR`.
 `character_embedding` — настоящий VECTOR index, cosine, размерность из
 `Neo4jSettings.embedding_dimensions` (1024 для bge-m3). `validate_embedding`

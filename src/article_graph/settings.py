@@ -52,6 +52,40 @@ class Neo4jSettings(BaseSettings):
     schema_timeout_seconds: int = Field(default=60, gt=0)
 
 
+class OllamaSettings(BaseSettings):
+    """Explicit configuration for embedding consumers; never loads a .env file."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="ARTICLE_GRAPH_OLLAMA__",
+        extra="forbid",
+        frozen=True,
+        hide_input_in_errors=True,
+    )
+
+    base_url: str
+    model: str = Field(min_length=1, pattern=r"^\S+:\S+$")
+    digest: str = Field(pattern=r"^[0-9a-f]{64}$")
+    dimensions: int = Field(ge=1, le=4096)
+    timeout_seconds: float = Field(default=30, gt=0, allow_inf_nan=False)
+    max_response_bytes: int = Field(default=4_000_000, gt=0)
+    max_batch_size: int = Field(default=100, gt=0)
+
+    @model_validator(mode="after")
+    def valid_endpoint(self) -> OllamaSettings:
+        url = urlsplit(self.base_url)
+        if (
+            url.scheme not in {"http", "https"}
+            or not url.hostname
+            or url.username is not None
+            or url.password is not None
+            or url.query
+            or url.fragment
+            or self.base_url != self.base_url.strip()
+        ):
+            raise ValueError("Ollama base URL must be HTTP without credentials")
+        return self
+
+
 class LLMSettings(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, hide_input_in_errors=True)
 
@@ -102,9 +136,15 @@ class Settings(BaseSettings):
     limits: Limits = Field(default_factory=Limits)
     neo4j: Neo4jSettings = Field(default_factory=Neo4jSettings)
     llm: LLMSettings
+    ollama: OllamaSettings | None = None
 
     @model_validator(mode="after")
     def separate_credentials(self) -> Settings:
+        if (
+            self.ollama is not None
+            and self.ollama.dimensions != self.neo4j.embedding_dimensions
+        ):
+            raise ValueError("Ollama dimensions must match the Neo4j vector index")
         credentials = (
             self.app_token.get_secret_value(),
             self.jwt_access_key.get_secret_value(),
