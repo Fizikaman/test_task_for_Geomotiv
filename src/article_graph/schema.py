@@ -21,6 +21,7 @@ UNIQUE_PROPERTIES: tuple[tuple[LiteralString, LiteralString, LiteralString], ...
     ("idempotency_id", "IdempotencyRecord", "idempotency_id"),
     ("embedding_space_index", "EmbeddingSpace", "index_name"),
     ("registration_lock", "RegistrationLock", "name"),
+    ("relation_kind", "RelationType", "kind"),
 )
 COMPOSITE_PROPERTIES: tuple[
     tuple[LiteralString, LiteralString, LiteralString, LiteralString], ...
