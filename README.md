@@ -1,4 +1,8 @@
-# Article Graph — P04
+# Article Graph
+
+Рабочий Docker Compose (P19): после настройки `.env` выполнить
+`docker compose up -d --build`. Автоматические init схемы/модели, healthchecks,
+сохранность данных и изолированная приёмка описаны в [docs/docker.md](docs/docker.md).
 
 Минимальный API на обычном CPython **3.15.2**. Для будущих Docker/CI использовать
 ту же ветку 3.15, без free-threaded/JIT. Реализованы каркас API, DTO, схема Neo4j

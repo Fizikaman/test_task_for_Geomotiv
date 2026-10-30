@@ -2,6 +2,8 @@
 
 import logging
 import signal
+from pathlib import Path
+from tempfile import gettempdir
 from threading import Event
 from types import FrameType
 from typing import Protocol
@@ -127,6 +129,8 @@ def main() -> None:
     signal.signal(signal.SIGTERM, stop)
     logging.basicConfig(level=logging.INFO)
     broker = CeleryBroker(settings.dispatcher)
+    health = Path(gettempdir()) / "article-graph-dispatcher-health"
+    health.unlink(missing_ok=True)
     try:
         while not stopped.is_set():
             try:
@@ -138,11 +142,14 @@ def main() -> None:
                     )
                     while not stopped.is_set():
                         dispatcher.tick()
+                        health.touch()
                         stopped.wait(settings.dispatcher.poll_seconds)
             except Exception:
+                health.unlink(missing_ok=True)
                 logger.warning("dispatcher_storage_unavailable")
                 stopped.wait(settings.dispatcher.retry_max_seconds)
     finally:
+        health.unlink(missing_ok=True)
         broker.close()
 
 

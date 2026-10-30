@@ -1,0 +1,124 @@
+name: geomotiv
+
+x-app: &app
+  image: geomotiv-app:p19
+  build: .
+  env_file: .env
+  environment: &environment
+    ARTICLE_GRAPH_NEO4J__URI: bolt://neo4j:7687
+    ARTICLE_GRAPH_OLLAMA__BASE_URL: http://ollama:11434
+    ARTICLE_GRAPH_BLOB_ROOT: /data/blobs
+    ARTICLE_GRAPH_WORKER__BLOB_ROOT: /data/blobs
+    ARTICLE_GRAPH_WORKER__BROKER_URL: redis://redis:6379/0
+    ARTICLE_GRAPH_DISPATCHER__BROKER_URL: redis://redis:6379/0
+  volumes:
+    - sources:/data/blobs
+  init: true
+  restart: unless-stopped
+
+services:
+  neo4j:
+    image: neo4j:5.26.0-community
+    environment:
+      NEO4J_AUTH: "${ARTICLE_GRAPH_NEO4J__USERNAME:?Set Neo4j username}/${ARTICLE_GRAPH_NEO4J__PASSWORD:?Set Neo4j password}"
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+    volumes:
+      - neo4j-data:/data
+    healthcheck:
+      test: [CMD-SHELL, 'cypher-shell -u "$${NEO4J_AUTH%%/*}" -p "$${NEO4J_AUTH#*/}" "RETURN 1" >/dev/null 2>&1']
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+  redis:
+    image: redis:8.2.2-alpine
+    command: [redis-server, --appendonly, 'yes', --appendfsync, always]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:0.9.6
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: [CMD, ollama, list]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
+  init-schema:
+    <<: *app
+    command: [init-schema]
+    restart: 'no'
+    depends_on:
+      neo4j:
+        condition: service_healthy
+
+  init-model:
+    <<: *app
+    command: [python, -m, article_graph.model_init]
+    restart: 'no'
+    depends_on:
+      init-schema:
+        condition: service_completed_successfully
+      ollama:
+        condition: service_healthy
+
+  api:
+    <<: *app
+    ports:
+      - '127.0.0.1:8000:8000'
+    depends_on: &ready
+      init-model:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/health/ready', timeout=60).close()"]
+      interval: 30s
+      timeout: 65s
+      retries: 5
+      start_period: 60s
+
+  worker:
+    <<: *app
+    command: [celery, -A, article_graph.celery_app:app, worker, --loglevel=WARNING, --concurrency=1, '--hostname=worker@%h']
+    depends_on: *ready
+    stop_grace_period: 420s
+    healthcheck:
+      test: [CMD-SHELL, 'celery -A article_graph.celery_app:app inspect ping --destination "worker@$${HOSTNAME}" --timeout 10 >/dev/null 2>&1']
+      interval: 30s
+      timeout: 20s
+      retries: 5
+      start_period: 30s
+
+  dispatcher:
+    <<: *app
+    command: [python, -m, article_graph.dispatcher]
+    depends_on: *ready
+    healthcheck:
+      test: [CMD, python, -c, "from pathlib import Path; from tempfile import gettempdir; from time import time; assert 0 <= time() - (Path(gettempdir()) / 'article-graph-dispatcher-health').stat().st_mtime < 30"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  sources:
+  neo4j-data:
+  redis-data:
+  ollama-models:

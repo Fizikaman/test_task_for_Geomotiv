@@ -23,6 +23,11 @@ from article_graph.graph_routes import router as graph_router
 from article_graph.registration import RegistrationError
 from article_graph.schema import SchemaNotReady, require_ready
 from article_graph.settings import Settings
+lazy from article_graph.embeddings import (
+    EmbeddingError,
+    OllamaEmbeddings,
+    open_embeddings,
+)
 
 
 class Liveness(BaseModel):
@@ -39,6 +44,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         driver = await to_thread(context.__enter__)
         try:
             await to_thread(require_ready, driver, configuration.neo4j)
+            if configuration.ollama is not None:
+                async with open_embeddings(
+                    configuration.ollama, driver, configuration.neo4j
+                ):
+                    pass
             app.state.driver = driver
             yield
         finally:
@@ -119,15 +129,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(graph_router)
 
     @app.get("/health/ready", tags=["health"])
-    def readiness() -> JSONResponse:
+    async def readiness() -> JSONResponse:
         if app.state.driver is None:
             return JSONResponse(
                 {"status": "unavailable"},
                 status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
             )
         try:
-            require_ready(app.state.driver, configuration.neo4j)
-        except SchemaNotReady, Neo4jError, DriverError:
+            await to_thread(require_ready, app.state.driver, configuration.neo4j)
+            if configuration.ollama is not None:
+                async with OllamaEmbeddings(configuration.ollama):
+                    pass
+        except SchemaNotReady, Neo4jError, DriverError, EmbeddingError:
             return JSONResponse(
                 {"status": "unavailable"},
                 status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,

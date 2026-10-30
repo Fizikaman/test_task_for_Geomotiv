@@ -1,0 +1,16 @@
+# Always use with --env-file tests/compose.env and -p geomotiv-p19-acceptance.
+x-test-app: &test-app
+  env_file: !override [tests/compose.env]
+
+services:
+  api:
+    <<: *test-app
+    ports: !override ['127.0.0.1:18000:8000']
+  worker:
+    <<: *test-app
+  dispatcher:
+    <<: *test-app
+  init-schema:
+    <<: *test-app
+  init-model:
+    <<: *test-app
