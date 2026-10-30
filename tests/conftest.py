@@ -1,5 +1,6 @@
 """Opt-in infrastructure, hardcoded to this project's dedicated local test endpoint."""
 
+import os
 from collections.abc import Iterator
 
 import pytest
@@ -28,6 +29,20 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
     parser.addoption("--e2e", action="store_true", help="Run isolated P21 HTTP E2E")
+    parser.addoption(
+        "--live-provider", action="store_true", help="P22: explicitly allow paid smoke"
+    )
+
+
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: list[pytest.Item]
+) -> None:
+    # Skip before fixtures/settings can read the separate live key or open sockets.
+    if os.environ.get("CI") or not config.getoption("--live-provider"):
+        skip = pytest.mark.skip(reason="P22 live smoke disabled (also always in CI)")
+        for item in items:
+            if "live_provider" in item.keywords:
+                item.add_marker(skip)
 
 
 @pytest.fixture(scope="session")

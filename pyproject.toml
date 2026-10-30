@@ -57,6 +57,7 @@ preset = "strict"
 testpaths = ["tests"]
 addopts = "-ra"
 markers = [
+    "live_provider: P22 paid provider + real Ollama (--live-provider, never CI)",
     "e2e: P21 real HTTP and background processes (--e2e)",
     "integration: requires isolated infrastructure (--neo4j or --infrastructure)",
     "infrastructure: P20 real Neo4j/Redis/dispatcher/worker (--infrastructure)",
