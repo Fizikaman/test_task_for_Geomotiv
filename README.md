@@ -27,7 +27,7 @@ ARTICLE_GRAPH_LLM__API_KEY=<provider-api-key>
 ARTICLE_GRAPH_LLM__TEXT_MODEL=deepseek-flash
 ARTICLE_GRAPH_LLM__OUTPUT_MODE=json_object
 # Для PDF явно задайте поддерживающую изображения модель этого же API:
-# ARTICLE_GRAPH_LLM__VISION_MODEL=<vision-model-id>
+# ARTICLE_GRAPH_LLM__VISION_MODEL=deepseek-flash
 ```
 
 `TEXT_MODEL` — точный идентификатор модели в API провайдера, а не URL или API key.
