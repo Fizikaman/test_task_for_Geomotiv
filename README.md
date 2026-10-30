@@ -9,6 +9,10 @@
 Контур и очистка создаются автоматически, LLM/Ollama заменены HTTP doubles;
 команду можно повторять без ручной чистки. Подробнее: [docs/integration.md](docs/integration.md).
 
+HTTP E2E P21: `uv run --frozen pytest -m e2e --e2e`.
+Отдельный Compose, настоящий API и фоновые процессы, Markdown/update/refresh
+и PDF с проверкой полученных image bytes: [docs/e2e.md](docs/e2e.md).
+
 Минимальный API на обычном CPython **3.15.2**. Для будущих Docker/CI использовать
 ту же ветку 3.15, без free-threaded/JIT. Реализованы каркас API, DTO, схема Neo4j
 и авторизация с ротацией Refresh.

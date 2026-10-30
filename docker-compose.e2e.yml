@@ -1,0 +1,113 @@
+name: geomotiv-p21-e2e
+
+x-app: &app
+  image: geomotiv-app:p21-e2e
+  build: .
+  user: '10001:10001'
+  environment: &environment
+    ARTICLE_GRAPH_NEO4J__URI: bolt://neo4j:7687
+    ARTICLE_GRAPH_NEO4J__PASSWORD: geomotiv-p21-e2e-only
+    ARTICLE_GRAPH_LLM__BASE_URL: http://doubles:8080/v1
+    ARTICLE_GRAPH_LLM__API_KEY: p21-no-paid-api
+    ARTICLE_GRAPH_LLM__TEXT_MODEL: p21-text
+    ARTICLE_GRAPH_LLM__VISION_MODEL: p21-vision
+    ARTICLE_GRAPH_APP_TOKEN: p21-public-app-token-for-isolated-e2e-only
+    ARTICLE_GRAPH_JWT_ACCESS_KEY: p21-public-access-key-for-isolated-e2e-only
+    ARTICLE_GRAPH_JWT_REFRESH_KEY: p21-public-refresh-key-for-isolated-e2e-only
+    ARTICLE_GRAPH_APP_ID: p21-e2e
+    ARTICLE_GRAPH_BLOB_ROOT: /data/blobs
+    ARTICLE_GRAPH_LLM__OUTPUT_MODE: json_object
+    ARTICLE_GRAPH_LLM__TIMEOUT_SECONDS: 60
+    ARTICLE_GRAPH_OLLAMA__BASE_URL: http://doubles:8080
+    ARTICLE_GRAPH_OLLAMA__MODEL: p20-test:v1
+    ARTICLE_GRAPH_OLLAMA__DIGEST: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+    ARTICLE_GRAPH_OLLAMA__DIMENSIONS: 1024
+    ARTICLE_GRAPH_WORKER__BROKER_URL: redis://redis:6379/0
+    ARTICLE_GRAPH_WORKER__BLOB_ROOT: /data/blobs
+    ARTICLE_GRAPH_WORKER__LEASE_SECONDS: 20
+    ARTICLE_GRAPH_WORKER__HEARTBEAT_SECONDS: 2
+    ARTICLE_GRAPH_DISPATCHER__BROKER_URL: redis://redis:6379/0
+    ARTICLE_GRAPH_DISPATCHER__POLL_SECONDS: 0.1
+    ARTICLE_GRAPH_DISPATCHER__RETRY_SECONDS: 1
+    ARTICLE_GRAPH_DISPATCHER__RETRY_MAX_SECONDS: 2
+    ARTICLE_GRAPH_DISPATCHER__REDELIVERY_SECONDS: 3
+    ARTICLE_GRAPH_LIMITS__PROVIDER_TIMEOUT_SECONDS: 60
+    ARTICLE_GRAPH_LIMITS__RETRY_BACKOFF_SECONDS: 1
+  volumes:
+    - e2e-blobs:/data/blobs
+  init: true
+
+services:
+  neo4j:
+    image: neo4j:5.26.0-community
+    networks: [default]
+    environment:
+      NEO4J_AUTH: neo4j/geomotiv-p21-e2e-only
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+    healthcheck:
+      test: [CMD-SHELL, "cypher-shell -u neo4j -p geomotiv-p21-e2e-only 'RETURN 1' >/dev/null 2>&1"]
+      interval: 2s
+      timeout: 10s
+      retries: 60
+  redis:
+    image: redis:8.2.2-alpine
+    networks: [default]
+    command: [redis-server, --appendonly, 'yes', --appendfsync, always]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+  doubles:
+    <<: *app
+    networks: [default, test-control]
+    command: [python, -m, tests.p21_doubles]
+    working_dir: /
+    volumes: ['./tests:/tests:ro']
+    ports: ['127.0.0.1:38080:8080']
+    healthcheck:
+      test: [CMD, python, -c, "from urllib.request import urlopen; urlopen('http://localhost:8080/control', timeout=2).close()"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+  api:
+    <<: *app
+    networks: [default, test-control]
+    ports: ['127.0.0.1:38000:8000']
+    depends_on:
+      init-schema: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+      doubles: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -c, "from urllib.request import urlopen; urlopen('http://localhost:8000/health/live', timeout=5).close()"]
+      interval: 2s
+      timeout: 10s
+      retries: 60
+  init-schema:
+    <<: *app
+    command: [init-schema]
+    depends_on:
+      neo4j: {condition: service_healthy}
+  worker:
+    <<: *app
+    command: [celery, -A, 'article_graph.celery_app:app', worker, --loglevel=WARNING, --concurrency=2, --hostname=p21@worker]
+    depends_on:
+      init-schema: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+      doubles: {condition: service_healthy}
+  dispatcher:
+    <<: *app
+    command: [python, -m, article_graph.dispatcher]
+    depends_on:
+      init-schema: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+
+networks:
+  default:
+    internal: true
+  test-control: {}
+
+volumes:
+  e2e-blobs:

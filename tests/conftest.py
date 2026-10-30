@@ -27,6 +27,8 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "--infrastructure", action="store_true", help="Run isolated P20 Compose suite"
     )
 
+    parser.addoption("--e2e", action="store_true", help="Run isolated P21 HTTP E2E")
+
 
 @pytest.fixture(scope="session")
 def neo4j_settings(request: pytest.FixtureRequest) -> Neo4jSettings:
