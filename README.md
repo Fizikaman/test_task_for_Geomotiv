@@ -363,6 +363,13 @@ uv run --frozen pytest -m e2e --e2e
 P20/P21 сами поднимают и удаляют только свои Compose projects/volumes.
 [Infrastructure](docs/integration.md), [HTTP E2E](docs/e2e.md).
 
+[CI](.github/workflows/ci.yml) запускается на push/PR и вручную: обычный CPython
+3.15.2, uv 0.13.6, frozen install, Ruff, Pyrefly strict и unit/runtime; отдельный
+job последовательно проверяет настоящую Neo4j, инфраструктуру и HTTP E2E.
+LLM-ключ и скачивание embedding-модели для CI не нужны: AI заменён HTTP doubles,
+live smoke принудительно отключён. Точные результаты финальной локальной
+приёмки и оставшиеся ограничения: [P24](docs/p24-readiness.md).
+
 Для ручного повтора curl без реального провайдера можно поднять отдельный P23 стек:
 
 ```powershell
@@ -409,9 +416,12 @@ uv run --frozen pytest tests/test_live_provider.py --live-provider -q
 Одного флага недостаточно: нужны `P22_LIVE_CONSENT`, отдельные `P22_LLM__*` и
 `P22_OLLAMA__*`, отдельный live Neo4j. Полный безопасный setup и cleanup:
 [live smoke](docs/live-smoke.md). В CI smoke всегда отключён, обычный `.env`
-не подхватывается. Ключи не сохраняются в fixtures/отчёты. P22 остаётся открытым:
-реальные JSON mode + Vision + Ollama embed + graph persistence на результатах
-настоящего LLM и качество на employer sample пока не проверены.
+не подхватывается. Ключи не сохраняются в fixtures/отчёты. По отдельному запросу
+проверен [рабочий smoke статьи Yahoo и PDF/Vision](docs/live-article-validation.md):
+настоящие DeepSeek JSON mode, Ollama и graph persistence. Все три P22 fixtures
+прошли semantic oracle через рабочие HTTP/worker, включая PDF-схему и смешанный
+PDF с `deepseek-flash`. Штатный изолированный pytest live-набор в этом сеансе
+не запускался; экспертная оценка качества на произвольных документах не выполнена.
 
 ## Что проверено и что не обещается
 
@@ -423,4 +433,4 @@ uv run --frozen pytest tests/test_live_provider.py --live-provider -q
 одиночные Neo4j/Redis/Ollama и общий локальный blob volume, без автоматического
 очищения истории. Возможны повторные внешние вызовы/оплата после crash до checkpoint.
 Масштабирование требует измерений и отдельных изменений, описанных в
-[decisions](docs/decisions.md). Этот шаг не публикует репозиторий и не добавляет CI.
+[decisions](docs/decisions.md). Репозиторий просматривает и публикует пользователь.

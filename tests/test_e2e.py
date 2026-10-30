@@ -249,9 +249,13 @@ def test_pdf_relation_requires_received_image(e2e: HTTPHarness) -> None:
     e2e.done(item)
     characters = e2e.page(f"/characters/by_article/{item.article_id}", Character)
     assert {c.name for c in characters} == {"Alice", "Bob"}
-    relations = e2e.page(f"/relations/connected/{characters[0].character_id}", Relation)
+    # Character UUID order does not identify the source of a directed relation.
+    alice = next(c.character_id for c in characters if c.name == "Alice")
+    bob = next(c.character_id for c in characters if c.name == "Bob")
+    relations = e2e.page(f"/relations/connected/{alice}", Relation)
     relation = next(r for r in relations if r.article_id == item.article_id)
     assert relation.kind == "PARENT_OF" and relation.directed
+    assert relation.subject_id == alice and relation.object_id == bob
     assert relation.revision_id == item.revision_id
     assert relation.evidence[0].kind == "visual"
     assert relation.evidence[0].page == 1

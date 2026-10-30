@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+  PYTHON_JIT: '0'
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: '0.13.6'
+          python-version: '3.15.2'
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Ordinary CPython, GIL, no JIT
+        run: >-
+          uv run --frozen python -c
+          "import platform, sys, sysconfig;
+          assert platform.python_implementation() == 'CPython';
+          assert sys.version_info[:3] == (3, 15, 2);
+          assert not sysconfig.get_config_var('Py_GIL_DISABLED');
+          assert sys._is_gil_enabled();
+          assert not (hasattr(sys, '_jit') and sys._jit.is_enabled());
+          print(sys.version)"
+      - run: uv run --frozen ruff check .
+      - run: uv run --frozen ruff format --check .
+      - run: uv run --frozen pyrefly check
+      # Includes subprocess checks of both PEP 810 forms and eager registration.
+      - name: Unit and runtime
+        run: uv run --frozen pytest -m 'not integration and not e2e and not live_provider' -q
+      - name: Live smoke remains disabled even with its opt-in flag
+        run: uv run --frozen pytest tests/test_live_provider.py --live-provider -q
+
+  infrastructure:
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: '0.13.6'
+          python-version: '3.15.2'
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Start isolated Neo4j
+        run: docker compose --env-file tests/e2e.env -f docker-compose.test.yml up -d --wait --wait-timeout 180
+      - name: Database integration
+        run: uv run --frozen pytest -m 'integration and not infrastructure' --neo4j -q
+      - name: Remove isolated Neo4j before process tests
+        if: always()
+        run: docker compose --env-file tests/e2e.env -f docker-compose.test.yml down --volumes --remove-orphans --timeout 10
+      # Sequential to limit RAM; real Neo4j/Redis/processes, only AI is doubled.
+      - name: Infrastructure and recovery
+        run: uv run --frozen pytest -m infrastructure --infrastructure -q
+      - name: HTTP E2E, including PDF images
+        run: uv run --frozen pytest -m e2e --e2e -q
+      - name: Clean test projects after failures or cancellation
+        if: always()
+        run: |
+          docker compose --env-file tests/infrastructure.env -p geomotiv-p20-test -f docker-compose.integration.yml down --volumes --remove-orphans --timeout 10
+          docker compose --env-file tests/e2e.env -p geomotiv-p21-e2e -f docker-compose.e2e.yml down --volumes --remove-orphans --timeout 10
