@@ -39,7 +39,7 @@ function Wait-Article([string] $Url, [string] $Expected) {
 Push-Location $ProjectRoot
 try {
     # Fixture creation uses local Python only, without any provider settings.
-    & '.venv/Scripts/uv.exe' run --frozen python -c 'import sys; from pathlib import Path; from tests.p21_fixture import diagram_pdf; root=Path(sys.argv[1]); (root/"article.pdf").write_bytes(diagram_pdf()); (root/"no-arrow.pdf").write_bytes(diagram_pdf(arrow=False))' $Scratch
+    & '.venv/Scripts/uv.exe' run --frozen python -c 'import sys; from pathlib import Path; from tests.e2e.p21_fixture import diagram_pdf; root=Path(sys.argv[1]); (root/"article.pdf").write_bytes(diagram_pdf()); (root/"no-arrow.pdf").write_bytes(diagram_pdf(arrow=False))' $Scratch
     Require ($LASTEXITCODE -eq 0) 'PDF fixture creation failed'
     Push-Location $Scratch
     try {

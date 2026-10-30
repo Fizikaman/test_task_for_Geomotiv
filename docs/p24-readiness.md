@@ -50,9 +50,9 @@ Pytest/Docker выполнялись вне sandbox: внутри него pytes
 | `uv run --frozen pytest -m e2e --e2e -q` | После исправления: 2 passed, 650 deselected; 54.61 с |
 | Linux: frozen sync, Ruff lint/format, Pyrefly | Passed, 0 errors; то же предупреждение |
 | Linux: `pytest -m 'not integration and not e2e and not live_provider' -q` через frozen uv | 459 passed, 1 skipped, 192 deselected; 217.42 с |
-| Linux: `pytest tests/test_live_provider.py --live-provider -q` через frozen uv, `CI=true` | 3 skipped; 3.20 с |
+| Linux: `pytest tests/live/test_live_provider.py --live-provider -q` через frozen uv, `CI=true` | 3 skipped; 3.20 с |
 | `actionlint .github/workflows/ci.yml` | Passed |
-| `uv run --frozen pytest tests/test_documentation.py -q` | 3 passed; 0.53 с |
+| `uv run --frozen pytest tests/deployment/test_documentation.py -q` | 3 passed; 0.53 с |
 
 Linux quality-команды выполнены в `python:3.15.2-slim`, с лимитами 2 CPU/1 GiB,
 на копии только исходников, тестов и публичной документации. Единственный skip —
@@ -99,7 +99,7 @@ source, реальный embedding/index, fixture публикации чере�
 Первый HTTP E2E: 1 passed, 1 failed за 55.37 с. PDF pipeline завершился успешно,
 но тест искал исходящую `PARENT_OF` у `characters[0]`, то есть первого UUID,
 которым мог оказаться Bob. По контракту направленная связь возвращается только
-для subject Alice. [Тест](../tests/test_e2e.py) теперь выбирает Alice по имени
+для subject Alice. [Тест](../tests/e2e/test_e2e.py) теперь выбирает Alice по имени
 и проверяет оба конца Alice → Bob; production-запрос не менялся.
 Повторный полный прогон после исправления: 2 passed за 54.61 с. Нет retry или
 ослабления проверок в CI, исходное падение не скрыто.

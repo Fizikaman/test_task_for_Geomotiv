@@ -14,19 +14,19 @@ from fastapi import status as http_status
 from pydantic import BaseModel
 lazy from redis import Redis
 
-from article_graph.auth import issue_pair
-from article_graph.database import open_database
-from article_graph.domain import ExtractedCharacter, ProcessingResponse
-from article_graph.embeddings import EmbeddingBatch, OllamaEmbeddings
-from article_graph.processing_lease import LeaseRepository
-from article_graph.publication import GraphPublisher, Publication, PublicationResult
-from article_graph.resolution import (
+from article_graph.ai.embeddings import EmbeddingBatch, OllamaEmbeddings
+from article_graph.ai.resolution import (
     RESOLUTION_NAMESPACE,
     IdentityMapping,
     ResolutionArtifact,
     ResolvedCharacter,
 )
-from article_graph.schema import require_ready
+from article_graph.db.database import open_database
+from article_graph.db.processing_lease import LeaseRepository
+from article_graph.db.publication import GraphPublisher, Publication, PublicationResult
+from article_graph.db.schema import require_ready
+from article_graph.domain import ExtractedCharacter, ProcessingResponse
+from article_graph.security.auth import issue_pair
 from article_graph.settings import Settings
 
 
@@ -126,7 +126,10 @@ def main() -> None:
                 client, f"P19 pending update {active.article_id}", active.article_id
             )
             # Real Celery/Kombu delivery to Redis, with consumers stopped by the harness.
-            from article_graph.dispatcher import CeleryBroker, DispatcherConfig
+            from article_graph.processing.dispatcher import (
+                CeleryBroker,
+                DispatcherConfig,
+            )
 
             broker = CeleryBroker(DispatcherConfig(broker_url="redis://redis:6379/0"))
             try:

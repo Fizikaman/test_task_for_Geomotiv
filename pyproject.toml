@@ -22,7 +22,7 @@ dependencies = [
 
 [project.scripts]
 article-graph = "article_graph.__main__:main"
-init-schema = "article_graph.schema:main"
+init-schema = "article_graph.db.schema:main"
 
 [dependency-groups]
 dev = [

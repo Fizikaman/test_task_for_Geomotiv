@@ -51,8 +51,8 @@ LLM-вызовов и объединение extraction относятся к P1
 без частичного результата. Пустой/пробельный Markdown — validation_error,
 бинарные control characters — invalid_document. Хвост не обрезается.
 
-Проверки: `uv run --frozen pytest tests/test_preparation.py tests/test_domain.py
-tests/test_app.py`. Проверяются RU/EN, CRLF/BOM/emoji/combining characters,
+Проверки: `uv run --frozen pytest tests/documents/test_preparation.py tests/unit/test_domain.py
+tests/api/test_app.py`. Проверяются RU/EN, CRLF/BOM/emoji/combining characters,
 таблицы, границы, hard splits, восстановление всего текста, overlap, общие
 лимиты страниц, ошибки, ID в отдельных процессах и отсутствие сетевого IO.
 Runtime-проверка подтверждает, что подготовка не загружает PDFium/httpx/Neo4j;

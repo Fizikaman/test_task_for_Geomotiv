@@ -13,17 +13,17 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 lazy from neo4j.exceptions import DriverError, Neo4jError
 
-from article_graph.article_routes import router as article_router
-from article_graph.auth import AuthError
-from article_graph.auth_routes import router as auth_router
-from article_graph.database import open_database
-from article_graph.document_format import DocumentError
+from article_graph.api.article_routes import router as article_router
+from article_graph.api.auth_routes import router as auth_router
+from article_graph.api.graph_routes import router as graph_router
+from article_graph.db.database import open_database
+from article_graph.db.schema import SchemaNotReady, require_ready
+from article_graph.documents.document_format import DocumentError
 from article_graph.domain import ErrorCode
-from article_graph.graph_routes import router as graph_router
-from article_graph.registration import RegistrationError
-from article_graph.schema import SchemaNotReady, require_ready
+from article_graph.processing.registration import RegistrationError
+from article_graph.security.auth import AuthError
 from article_graph.settings import Settings
-lazy from article_graph.embeddings import (
+lazy from article_graph.ai.embeddings import (
     EmbeddingError,
     OllamaEmbeddings,
     open_embeddings,

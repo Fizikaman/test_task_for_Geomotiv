@@ -59,7 +59,7 @@ services:
   doubles:
     <<: *app
     networks: [default, test-control]
-    command: [python, /tests/p20_doubles.py]
+    command: [python, /tests/infrastructure/p20_doubles.py]
     volumes: ['./tests:/tests:ro']
     ports: ['127.0.0.1:28080:8080']
     healthcheck:
@@ -74,14 +74,14 @@ services:
       neo4j: {condition: service_healthy}
   worker:
     <<: *app
-    command: [celery, -A, 'article_graph.celery_app:app', worker, --loglevel=WARNING, --concurrency=2, --hostname=p20@worker]
+    command: [celery, -A, 'article_graph.processing.celery_app:app', worker, --loglevel=WARNING, --concurrency=2, --hostname=p20@worker]
     depends_on:
       init-schema: {condition: service_completed_successfully}
       redis: {condition: service_healthy}
       doubles: {condition: service_healthy}
   dispatcher:
     <<: *app
-    command: [python, -m, article_graph.dispatcher]
+    command: [python, -m, article_graph.processing.dispatcher]
     depends_on:
       init-schema: {condition: service_completed_successfully}
       redis: {condition: service_healthy}

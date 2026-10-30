@@ -73,7 +73,7 @@ RETURN v
 
 ## Проверки
 
-`tests/test_publication.py --neo4j` использует настоящую изолированную
+`tests/processing/test_publication.py --neo4j` использует настоящую изолированную
 `docker-compose.test.yml` Neo4j 5.26.0 Community. Только claim будущего worker
 подготавливается Cypher-фикстурой; publisher и проверки состояния — настоящие.
 Проверяются запись evidence/векторов/endpoints/статусов, rollback при реальной

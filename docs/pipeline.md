@@ -102,7 +102,7 @@ timeout доказательством rollback или отсутствия оп
 
 ## Проверки
 
-`uv run --frozen pytest tests/test_pipeline.py --neo4j` использует только явные
+`uv run --frozen pytest tests/processing/test_pipeline.py --neo4j` использует только явные
 fake LLM/embeddings и настоящую изолированную Neo4j из
 `docker-compose.test.yml`. Проверяются публикация и повтор completed, сбои
 этапов, сохранение прежней active, возобновление после создания нового сервиса,

@@ -1,6 +1,6 @@
 # P11: извлечение документа
 
-`article_graph.extraction.extract_document` принимает `PreparedDocument` для
+`article_graph.ai.extraction.extract_document` принимает `PreparedDocument` для
 Markdown или `PreparedPdf`, `ExtractionProvider`, `BlobStore` и `Limits`.
 Возвращает `ExtractionArtifact` и immutable `Blob` сохранённого JSON.
 HTTP/worker, глобальная идентичность и публикация графа здесь не подключаются:
@@ -72,7 +72,7 @@ JSON schema в них не входят. Они не заменяют token/cont
 Гарантия exactly-once платных вызовов при падении процесса не предоставляется.
 
 Проверки запускаются через uv 0.13.6 с frozen lock на обычном CPython 3.15.2:
-`uv run --frozen pytest tests/test_extraction.py tests/test_llm.py`.
+`uv run --frozen pytest tests/ai/test_extraction.py tests/ai/test_llm.py`.
 Тесты используют только deterministic `httpx.MockTransport`; платных вызовов нет.
 Проверяются также runtime lazy imports HTTP/PDF/Neo4j, сохранённый JSON,
 metadata, overlap/ambiguity/aliases, symmetric endpoints, бюджеты, bounded

@@ -17,7 +17,7 @@ PDF-схема и смешанный PDF. Evidence, aliases, направлен�
 
 ## Что проверяет сценарий
 
-`tests/test_live_provider.py` загружает короткий Markdown, визуальную семейную
+`tests/live/test_live_provider.py` загружает короткий Markdown, визуальную семейную
 схему PDF и двухстраничный смешанный PDF через настоящие маршруты приложения
 (TestClient). Затем production `execute_job` получает настоящую Neo4j lease,
 поддерживает heartbeat и запускает весь `RevisionPipeline`: preparation с PDF
@@ -79,7 +79,7 @@ $env:P22_LIVE_CONSENT = 'separate-key-provided-for-p22'
 try {
     docker compose --env-file tests/p22.env -f docker-compose.live.yml up -d --wait --wait-timeout 180
     if ($LASTEXITCODE -ne 0) { throw 'P22 database startup failed' }
-    .venv/Scripts/uv.exe run --frozen pytest tests/test_live_provider.py --live-provider -q
+    .venv/Scripts/uv.exe run --frozen pytest tests/live/test_live_provider.py --live-provider -q
 } finally {
     Remove-Item Env:P22_LLM__API_KEY -ErrorAction SilentlyContinue
     Remove-Item Env:P22_LIVE_CONSENT -ErrorAction SilentlyContinue
@@ -117,7 +117,7 @@ lease — 120 секундами с heartbeat каждые 15 секунд. Ав
 .venv/Scripts/uv.exe run --frozen pytest
 ```
 
-`tests/test_p22_fixture.py` проверяет реальные PDF renderer/subprocess, oracle на
+`tests/live/test_p22_fixture.py` проверяет реальные PDF renderer/subprocess, oracle на
 валидных и испорченных графах и runtime gates в отдельных Python-процессах:
 без флага, в CI с флагом, с флагом без consent. Во всех трёх случаях модуль
 live harness не импортируется, реальные providers не вызываются.

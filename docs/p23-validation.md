@@ -18,8 +18,8 @@
 | `uv run --frozen pytest --neo4j -q` | 639 passed, 13 skipped; 200.01 с |
 | `uv run --frozen pytest -m infrastructure --infrastructure -q` | 6 passed, 646 deselected; 152.56 с |
 | `uv run --frozen pytest -m e2e --e2e -q` | 2 passed, 650 deselected; 73.11 с |
-| `uv run --frozen pytest tests/test_documentation.py -q` | 3 passed |
-| `CI=true`, `uv run --frozen pytest tests/test_live_provider.py --live-provider -q` | 3 skipped, даже с явным live flag |
+| `uv run --frozen pytest tests/deployment/test_documentation.py -q` | 3 passed |
+| `CI=true`, `uv run --frozen pytest tests/live/test_live_provider.py --live-provider -q` | 3 skipped, даже с явным live flag |
 | `git diff --check` | Passed; только предупреждения LF/CRLF |
 
 P03 поднят/остановлен командами README с `--env-file tests/e2e.env`;
@@ -72,7 +72,7 @@ synthetic files helper удалены. Ни ключи, ни auth response, ни
 не сохранялись в отчёт. PDF содержит только имена и векторную стрелку;
 это проверка transport/pipeline, а не semantic quality реального LLM.
 
-[test_documentation.py](../tests/test_documentation.py) проверяет:
+[test_documentation.py](../tests/deployment/test_documentation.py) проверяет:
 
 - Существование всех локальных файлов по Markdown-ссылкам README, decisions
   и этого отчёта, включая полные prompt texts; выход за корень проекта запрещён.

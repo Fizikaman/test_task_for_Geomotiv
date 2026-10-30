@@ -7,8 +7,8 @@ import pytest
 from pydantic import SecretStr
 lazy from neo4j import Driver
 
-from article_graph.database import open_database
-from article_graph.schema import init_schema
+from article_graph.db.database import open_database
+from article_graph.db.schema import init_schema
 from article_graph.settings import LLMSettings, Neo4jSettings
 
 

@@ -44,7 +44,7 @@ docker compose -f docker-compose.test.yml up -d --wait
 .venv/Scripts/uv.exe run --frozen ruff check .
 .venv/Scripts/uv.exe run --frozen ruff format --check .
 .venv/Scripts/uv.exe run --frozen pyrefly check
-.venv/Scripts/uv.exe run --frozen pytest tests/test_graph_http.py tests/test_publication.py tests/test_article_http.py tests/test_auth.py tests/test_app.py tests/test_domain.py tests/test_database.py --neo4j
+.venv/Scripts/uv.exe run --frozen pytest tests/api/test_graph_http.py tests/processing/test_publication.py tests/api/test_article_http.py tests/api/test_auth.py tests/api/test_app.py tests/unit/test_domain.py tests/db/test_database.py --neo4j
 docker compose -f docker-compose.test.yml stop
 ```
 

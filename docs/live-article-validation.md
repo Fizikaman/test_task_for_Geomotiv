@@ -80,7 +80,7 @@ smoke не выполнялись; проверки этих веток с doubl
 runtime подтвердил обе модели `deepseek-flash` и output mode `json_object`.
 
 Через реальные HTTP API → Redis/dispatcher/prefork worker → DeepSeek/Ollama →
-Neo4j загружены все три синтетических документа из `tests/p22_fixture.py`.
+Neo4j загружены все три синтетических документа из `tests/live/p22_fixture.py`.
 Для каждого выполнен существующий `check_graph`, проверены active revision,
 article/revision provenance связей, сохранённые embeddings и digest модели.
 
@@ -105,5 +105,5 @@ Frozen sync, Ruff lint/format, Pyrefly strict: прошли, 0 ошибок ти
 не запускалась. Синтетические статьи оставлены в рабочем графе вместе с Yahoo
 статьёй, все шесть постоянных сервисов healthy, оба init exit 0.
 Полнота/точность на произвольных PDF и нагрузка этим прогоном не доказаны.
-Offline-регрессия `tests/test_p22_fixture.py tests/test_documentation.py`:
+Offline-регрессия `tests/live/test_p22_fixture.py tests/deployment/test_documentation.py`:
 16 passed за 4.25 с; `git diff --check` прошёл.

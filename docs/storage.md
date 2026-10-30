@@ -8,7 +8,7 @@ HTTP upload и PDF-пайплайн на этом шаге не добавлен
 
 ```python
 from pathlib import Path
-from article_graph.blob_store import BlobNamespace, LocalBlobStore
+from article_graph.documents.blob_store import BlobNamespace, LocalBlobStore
 
 store = LocalBlobStore(
     Path("/data/blobs"), max_bytes=settings.limits.upload_bytes, limits=settings.limits
@@ -65,7 +65,7 @@ encrypted PDF. Страницы здесь не рендерятся, текст
 полный blob. Уборка таких файлов — будущая отдельная задача. Общей транзакции
 с Neo4j и гарантии сохранности directory entry при потере питания здесь нет.
 
-Проверки P07: `uv run --frozen pytest tests/test_blob_store.py`. Набор проверяет
+Проверки P07: `uv run --frozen pytest tests/documents/test_blob_store.py`. Набор проверяет
 границы размера, traversal/junction, неверный UTF-8 и формат, настоящий PDF,
 ленивую загрузку PDFium в отдельном процессе, повторные записи, конкуренцию
 потоков и процессов, целостность и очистку после ошибок чтения/fsync/публикации.

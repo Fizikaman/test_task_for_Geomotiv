@@ -1,6 +1,6 @@
 # P05: Chat Completions LLM
 
-`src/article_graph/llm.py` предоставляет протокол `LLM`: типизированный
+`src/article_graph/ai/llm.py` предоставляет протокол `LLM`: типизированный
 `generate(request, response_model)` и `extract(content) -> Extraction`.
 `ChatCompletionsLLM` использует httpx 0.28.1, загружаемый явно через PEP 810.
 Схемы и проверка настроек импортируются eager. После работы нужно вызвать
@@ -68,7 +68,7 @@ tool calls, streaming, провайдерские thinking-параметры и
 BroLango `infrastructure/ai/deepseek.py` просмотрен точечно; биллинг, учёт
 токенов и отдельный retry framework не переносились.
 
-Проверки без платных запросов: `uv run --frozen pytest tests/test_llm.py`.
+Проверки без платных запросов: `uv run --frozen pytest tests/ai/test_llm.py`.
 HTTP MockTransport проверяет реальные сериализованные payload, image bytes,
 режимы JSON, строгую валидацию, ошибки и единственную попытку. Отдельный
 subprocess проверяет runtime lazy import. Live smoke остаётся opt-in P22;

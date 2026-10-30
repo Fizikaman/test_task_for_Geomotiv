@@ -85,7 +85,7 @@ P08: 29 passed, из них 28 на настоящей изолированно�
 сохранение active, retry, гонки шести потоков и полный rollback регистрации
 и retry. Очистка удаляет только ID, созданные тестом.
 
-Команда целевого набора: `uv run --frozen pytest tests/test_registration.py --neo4j`.
+Команда целевого набора: `uv run --frozen pytest tests/processing/test_registration.py --neo4j`.
 P08 не использует HTTP и брокер, paid API не вызываются. Linux-клиент P08,
 нагрузочное тестирование и аварийное отключение БД не проверялись.
 Следующий шаг — P09, Markdown и подготовка фрагментов.

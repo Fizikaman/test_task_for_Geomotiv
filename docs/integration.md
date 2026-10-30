@@ -21,7 +21,7 @@ worker использует реальные Neo4j, Redis, source/checkpoint sto
 Отдельный настоящий HTTP-сервер API относится к P21.
 
 LLM Chat Completions и Ollama tags/embed обслуживает управляемый HTTP double
-`tests/p20_doubles.py`: фиксированные model/digest/1024-мерные vectors,
+`tests/infrastructure/p20_doubles.py`: фиксированные model/digest/1024-мерные vectors,
 валидное извлечение с evidence, пустые связи, HTTP BAD_REQUEST и gate первого
 ответа. Счётчики доказывают отсутствие AI-вызовов при no-op и повторной доставке.
 Тела документов и токены не выводятся в логи. Production pipeline, lease,

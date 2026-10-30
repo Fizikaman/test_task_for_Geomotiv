@@ -33,8 +33,8 @@ Neo4j 5.26.0 Community, а не автоматически обновляему�
 для resolver. ANN score — подсказка для поиска, не evidence тождества. Решение
 проверяет имена/alias, контекст и вердикт; неоднозначность не разрешается одним
 порогом similarity. Snapshot кандидата перепроверяется при publication.
-См. [resolver](../src/article_graph/resolution.py) и
-[candidate queries](../src/article_graph/candidate_repository.py).
+См. [resolver](../src/article_graph/ai/resolution.py) и
+[candidate queries](../src/article_graph/db/candidate_repository.py).
 
 Ollama предоставляет локальный HTTP lifecycle embeddings, не требует отдельного
 платного embedding API и не связывает код с Python ML runtime. bge-m3 выбран как

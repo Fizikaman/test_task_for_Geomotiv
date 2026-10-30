@@ -42,7 +42,7 @@ Access остаётся действительным до exp: мгновенн�
 
 ```python
 from fastapi import APIRouter, Depends
-from article_graph.auth_routes import Access, require_access
+from article_graph.api.auth_routes import Access, require_access
 
 router = APIRouter(dependencies=[Depends(require_access)])
 # Если обработчику нужен app_id для Idempotency-Key, принять access: Access

@@ -47,7 +47,7 @@ jobs:
       - name: Unit and runtime
         run: uv run --frozen pytest -m 'not integration and not e2e and not live_provider' -q
       - name: Live smoke remains disabled even with its opt-in flag
-        run: uv run --frozen pytest tests/test_live_provider.py --live-provider -q
+        run: uv run --frozen pytest tests/live/test_live_provider.py --live-provider -q
 
   infrastructure:
     needs: quality

@@ -70,7 +70,7 @@ services:
 
   init-model:
     <<: *app
-    command: [python, -m, article_graph.model_init]
+    command: [python, -m, article_graph.ai.model_init]
     restart: 'no'
     depends_on:
       init-schema:
@@ -96,11 +96,11 @@ services:
 
   worker:
     <<: *app
-    command: [celery, -A, article_graph.celery_app:app, worker, --loglevel=WARNING, --concurrency=1, '--hostname=worker@%h']
+    command: [celery, -A, article_graph.processing.celery_app:app, worker, --loglevel=WARNING, --concurrency=1, '--hostname=worker@%h']
     depends_on: *ready
     stop_grace_period: 420s
     healthcheck:
-      test: [CMD-SHELL, 'celery -A article_graph.celery_app:app inspect ping --destination "worker@$${HOSTNAME}" --timeout 10 >/dev/null 2>&1']
+      test: [CMD-SHELL, 'celery -A article_graph.processing.celery_app:app inspect ping --destination "worker@$${HOSTNAME}" --timeout 10 >/dev/null 2>&1']
       interval: 30s
       timeout: 20s
       retries: 5
@@ -108,7 +108,7 @@ services:
 
   dispatcher:
     <<: *app
-    command: [python, -m, article_graph.dispatcher]
+    command: [python, -m, article_graph.processing.dispatcher]
     depends_on: *ready
     healthcheck:
       test: [CMD, python, -c, "from pathlib import Path; from tempfile import gettempdir; from time import time; assert 0 <= time() - (Path(gettempdir()) / 'article-graph-dispatcher-health').stat().st_mtime < 30"]

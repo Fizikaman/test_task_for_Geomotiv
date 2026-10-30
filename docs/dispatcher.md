@@ -4,11 +4,11 @@
 
 ```powershell
 uv sync --frozen
-uv run --frozen python -m article_graph.dispatcher
+uv run --frozen python -m article_graph.processing.dispatcher
 ```
 
 Если системный `uv` другой версии, используйте проектный:
-`.\.venv\Scripts\uv.exe run --frozen python -m article_graph.dispatcher`.
+`.\.venv\Scripts\uv.exe run --frozen python -m article_graph.processing.dispatcher`.
 
 Обязательны `ARTICLE_GRAPH_DISPATCHER__BROKER_URL` и доступ к той же Neo4j,
 что используют регистрация и worker. Broker URL должен совпадать с worker;
@@ -77,7 +77,7 @@ Outbox/sent history пока сохраняется без очистки; бо�
 ## Проверка
 
 ```powershell
-uv run --frozen pytest tests/test_dispatcher.py tests/test_worker.py tests/test_pipeline.py --neo4j
+uv run --frozen pytest tests/processing/test_dispatcher.py tests/processing/test_worker.py tests/processing/test_pipeline.py --neo4j
 ```
 
 Тесты используют настоящую отдельную Neo4j 5.26.0 Community из

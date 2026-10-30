@@ -1,6 +1,6 @@
 # Ollama embeddings — P06
 
-`article_graph.embeddings.OllamaEmbeddings` реализует типизированный контракт
+`article_graph.ai.embeddings.OllamaEmbeddings` реализует типизированный контракт
 `Embeddings.embed(Sequence[str]) -> EmbeddingBatch`. Порядок результатов совпадает
 с порядком входного batch. Metadata содержит полное имя модели с tag, digest
 манифеста, размерность и `input_version=raw-text-v1`. Текст не нормализуется.
@@ -54,7 +54,7 @@ constraints для проверки всех векторов. Нельзя уд
 явно экспортировать в окружение; команда не читает `.env`):
 
 ```powershell
-uv run --frozen python -m article_graph.embeddings
+uv run --frozen python -m article_graph.ai.embeddings
 ```
 
 Текущий HTTP API пока обслуживает auth/health и не использует embeddings.

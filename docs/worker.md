@@ -4,7 +4,7 @@
 
 ```powershell
 uv sync --frozen
-uv run --frozen celery -A article_graph.celery_app:app worker --pool=prefork --concurrency=2 --loglevel=INFO
+uv run --frozen celery -A article_graph.processing.celery_app:app worker --pool=prefork --concurrency=2 --loglevel=INFO
 ```
 
 Prefork предназначен для Linux. Для локальной проверки на Windows используйте
@@ -83,7 +83,7 @@ Celery retries и брокерные redeliveries не обходят durable at
 ## Проверка
 
 ```powershell
-uv run --frozen pytest tests/test_worker.py tests/test_pipeline.py --neo4j
+uv run --frozen pytest tests/processing/test_worker.py tests/processing/test_pipeline.py --neo4j
 ```
 
 Используется настоящая изолированная Neo4j из `docker-compose.test.yml`.

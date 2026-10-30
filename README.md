@@ -283,7 +283,7 @@ flowchart LR
     S["RefreshSession: token hash / family / rotation"]
 ```
 
-[Схема и индексы](src/article_graph/schema.py), [публикация](docs/publication.md),
+[Схема и индексы](src/article_graph/db/schema.py), [публикация](docs/publication.md),
 [pipeline/checkpoints](docs/pipeline.md), [обоснования и масштабирование](docs/decisions.md).
 
 ## Промпты, провайдер и лимиты
@@ -327,6 +327,14 @@ Linux RLIMIT_AS; это ограничение проверяется в Linux �
 `ARTICLE_GRAPH_LIMITS__PDF_PAGES=10` и аналогично другим полям. Полный источник
 значений — [Settings/Limits](src/article_graph/settings.py); детали —
 [PDF](docs/pdf.md), [LLM adapter](docs/llm.md), [embeddings](docs/embeddings.md).
+
+## Структура проекта
+
+В `src/article_graph` модули сгруппированы в `api`, `security`, `documents`,
+`ai`, `db` и `processing`; приложение, настройки и общие DTO остались в корне.
+Тесты сгруппированы по соответствующим областям и отдельным процессным наборам.
+Назначение пакетов, точки входа и результаты проверки переноса:
+[структура проекта](docs/structure.md).
 
 ## Проверки без платных API
 
@@ -383,7 +391,7 @@ fixtures. Markdown должен содержать `Alice met Bob.`, измен�
 `P21_CHANGED` и `Alice met Carol.`. PDF fixture для этого double:
 
 ```powershell
-uv run --frozen python -c "from pathlib import Path; from tests.p21_fixture import diagram_pdf; Path('article.pdf').write_bytes(diagram_pdf())"
+uv run --frozen python -c "from pathlib import Path; from tests.e2e.p21_fixture import diagram_pdf; Path('article.pdf').write_bytes(diagram_pdf())"
 ```
 
 Double проверяет геометрию конкретной синтетической схемы; это проверка pipeline
@@ -410,7 +418,7 @@ docker compose --env-file tests/e2e.env -p geomotiv-p23-docs -f docker-compose.e
 Запускается только после явного предоставления отдельного тестового ключа:
 
 ```powershell
-uv run --frozen pytest tests/test_live_provider.py --live-provider -q
+uv run --frozen pytest tests/live/test_live_provider.py --live-provider -q
 ```
 
 Одного флага недостаточно: нужны `P22_LIVE_CONSENT`, отдельные `P22_LLM__*` и

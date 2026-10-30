@@ -10,8 +10,8 @@
 Текст и страницы исключены из repr там, где они могли бы раскрыть содержимое.
 
 ```python
-from article_graph.blob_store import BlobNamespace
-from article_graph.pdf_preparation import prepare_pdf
+from article_graph.documents.blob_store import BlobNamespace
+from article_graph.documents.pdf_preparation import prepare_pdf
 
 result = await prepare_pdf(
     immutable_source_path,
@@ -93,8 +93,8 @@ Windows: `uv sync --frozen`, `uv run --frozen ruff check .`,
 `uv run --frozen ruff format --check .`, `uv run --frozen pyrefly check`,
 `uv run --frozen pytest`. Использован локальный uv 0.13.6.
 
-Целевой набор: `uv run --frozen pytest tests/test_pdf_preparation.py
-tests/test_preparation.py tests/test_blob_store.py`. Синтетические fixtures
+Целевой набор: `uv run --frozen pytest tests/documents/test_pdf_preparation.py
+tests/documents/test_preparation.py tests/documents/test_blob_store.py`. Синтетические fixtures
 включают текстовый PDF, скан, векторную стрелку с текстом, пустые страницы,
 поворот, дробный/огромный размер, повреждение и настоящий encrypted R2 PDF.
 Проверяются PNG CRC/размеры/пиксели, наличие вектора, номера страниц,

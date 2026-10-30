@@ -11,4 +11,4 @@ uv sync --frozen
 uv run --frozen ruff check .
 uv run --frozen ruff format --check .
 uv run --frozen pyrefly check
-uv run --frozen pytest tests/test_pdf_preparation.py tests/test_preparation.py tests/test_blob_store.py
+uv run --frozen pytest tests/documents/test_pdf_preparation.py tests/documents/test_preparation.py tests/documents/test_blob_store.py
