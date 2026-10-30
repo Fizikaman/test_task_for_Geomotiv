@@ -151,7 +151,8 @@ directed=false; PARENT_OF всегда directed=true, subject — родител
 Обязательные GET возвращают 200 `Page<T>`:
 `{"items":[],"limit":20,"offset":0,"next_offset":null}`.
 Параметры limit по умолчанию limits.page_default, offset=0; limit >0 и
-не выше limits.page_max, offset ≥0. Переполнение → 422, без тихого clamp.
+не выше limits.page_max, 0 ≤ offset ≤ 2**63 - 1 (целое Neo4j).
+Переполнение → 422, без тихого clamp.
 next_offset = offset + limit при наличии следующей страницы, иначе null.
 Offset за концом даёт пустую страницу. Snapshot между запросами не обещается.
 

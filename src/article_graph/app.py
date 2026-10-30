@@ -19,6 +19,7 @@ from article_graph.auth_routes import router as auth_router
 from article_graph.database import open_database
 from article_graph.document_format import DocumentError
 from article_graph.domain import ErrorCode
+from article_graph.graph_routes import router as graph_router
 from article_graph.registration import RegistrationError
 from article_graph.schema import SchemaNotReady, require_ready
 from article_graph.settings import Settings
@@ -115,6 +116,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(auth_router)
     app.include_router(article_router)
+    app.include_router(graph_router)
 
     @app.get("/health/ready", tags=["health"])
     def readiness() -> JSONResponse:
