@@ -2,7 +2,8 @@ import asyncio
 import json
 import os
 import sys
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import AsyncGenerator, Callable, Iterator, Sequence
+from contextlib import asynccontextmanager
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
@@ -319,6 +320,61 @@ def test_pipeline_imports_are_lazy() -> None:
         text=True,
     )
     assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("error_after_publication", [False, True])
+def test_pipeline_with_worker_lease(h: Harness, error_after_publication: bool) -> None:
+    from article_graph.processing_lease import LeaseRepository
+    from article_graph.worker import PipelineRunner, execute_job
+
+    job = h.register()
+    h.query(
+        "MATCH (j:Job {job_id: $job}) SET j.status = 'queued', j.attempt = 0 "
+        "REMOVE j.attempt_token, j.lease_expires_at",
+        job=str(job.job_id),
+    )
+    leases = LeaseRepository(h.driver, h.settings, Limits(), 120)
+
+    class Runner:
+        async def run(self, attempt: Attempt) -> PublicationResult:
+            result = await h.pipeline.run(attempt)
+            if error_after_publication:
+                raise PipelineError(
+                    ErrorCode.SERVICE_UNAVAILABLE, Stage.PUBLICATION, retryable=True
+                )
+            return result
+
+    @asynccontextmanager
+    async def factory() -> AsyncGenerator[PipelineRunner]:
+        yield Runner()
+
+    async def scenario() -> None:
+        assert (
+            await execute_job(
+                job.job_id,
+                leases,
+                factory,
+                heartbeat_seconds=0.05,
+                processing_seconds=30,
+            )
+            is None
+        )
+        assert (
+            await execute_job(
+                job.job_id,
+                leases,
+                factory,
+                heartbeat_seconds=0.05,
+                processing_seconds=30,
+            )
+            is None
+        )
+
+    asyncio.run(scenario())
+    assert h.state(job)["status"] == "completed"
+    assert h.state(job)["active"] == str(job.revision_id)
+    assert h.llm.calls == 1
 
 
 @pytest.mark.integration

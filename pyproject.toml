@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Article graph API"
 requires-python = ">=3.15,<3.16"
 dependencies = [
+    "celery[redis]==5.6.3",
     "fastapi==0.162.0",
     "httpx==0.28.1",
     "neo4j==6.4.1",

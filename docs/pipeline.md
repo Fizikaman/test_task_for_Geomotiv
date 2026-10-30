@@ -18,8 +18,8 @@ LLM с `generate_with_metadata` и `generate`, Embeddings, CandidateStore,
 probe/bind P06 до обработки задач. Pipeline не создаёт fake-провайдеров
 автоматически и не читает настройки или credentials из соседних проектов.
 
-Claim, heartbeat, запись failed/retry и bounded retry scheduling относятся
-к P15. Вызывающий код обязан сохранять ошибки только с проверкой текущего
+Claim, heartbeat, запись failed/retry и bounded retry scheduling реализованы
+в [worker P15](worker.md). Вызывающий код обязан сохранять ошибки только с проверкой текущего
 владельца lease, чтобы ошибка старой попытки не затронула новую. Сам pipeline
 не переводит Job в failed и не продлевает lease. Job/revision становятся
 completed атомарно с графом и active pointer через P13.
@@ -96,7 +96,7 @@ durable checkpoint может привести к повторному вызо�
 
 Отмена `asyncio.to_thread` не убивает уже начатую синхронную DB transaction:
 при timeout/cancellation во время публикации её результат может оказаться
-committed. P15 должен сверять durable Job status и соблюдать fencing при
+committed. Worker P15 сверяет durable Job status и соблюдает fencing при
 записи failed/retry; повтор completed уже поддержан P13/P14. Нельзя считать
 timeout доказательством rollback или отсутствия оплаты.
 
