@@ -122,6 +122,65 @@ class LeaseRepository:
             and row["live"] is True
         )
 
+    def recover(self, job_id: UUID, redelivery_seconds: int) -> bool:
+        """Recheck under worker locks; queue recovery without claiming an attempt."""
+        with self.driver.session(database=self.database) as session:
+            return session.execute_write(self._recover, job_id, redelivery_seconds)
+
+    def _recover(
+        self, tx: ManagedTransaction, job_id: UUID, redelivery_seconds: int
+    ) -> bool:
+        row = self._state(tx, job_id)
+        if row is None or row["status"] not in {"queued", "processing"}:
+            return False
+        # Reuse claim's terminal transitions, without starting provider work.
+        stale = row["latest"] != row["revision"] or row["latest_job"] != str(job_id)
+        expired = row["status"] == "processing" and not row["live"]
+        if stale or (row["attempt"] >= self.limits.job_attempts and expired):
+            self._claim(tx, job_id)
+            return False
+        if row["status"] == "processing" and not expired:
+            return False
+        if not row["ready"]:
+            return False
+        due = tx.run(
+            "MATCH (j:Job {job_id: $job}) WHERE "
+            "($expired OR coalesce(j.last_dispatched_at, j.created_at, 0) "
+            "+ $redelivery <= datetime.realtime().epochMillis / 1000.0) "
+            "AND NOT EXISTS { MATCH (j)-[:HAS_OUTBOX]->(o:Outbox) "
+            "WHERE o.status IN ['pending', 'dispatching'] } "
+            "RETURN j.job_id AS id",
+            job=str(job_id),
+            expired=expired,
+            redelivery=redelivery_seconds,
+        ).single()
+        if due is None:
+            return False
+        if row["attempt"] >= self.limits.job_attempts:
+            self._claim(tx, job_id)
+            return False
+        delay = (
+            self.limits.retry_backoff_seconds * 2 ** (row["attempt"] - 1)
+            if expired
+            else 0
+        )
+        tx.run(
+            "MATCH (j:Job {job_id: $job}), "
+            "(r:ArticleRevision {revision_id: $revision}) "
+            "SET j.status = 'queued', r.status = 'queued', "
+            "j.available_at = datetime.realtime().epochMillis / 1000.0 + $delay "
+            "REMOVE j.lease_expires_at, j.attempt_token "
+            "CREATE (o:Outbox {outbox_id: $outbox, job_id: $job, status: 'pending', "
+            "available_at: j.available_at, "
+            "created_at: datetime.realtime().epochMillis / 1000.0}) "
+            "CREATE (j)-[:HAS_OUTBOX]->(o)",
+            job=str(job_id),
+            revision=row["revision"],
+            outbox=str(uuid4()),
+            delay=delay,
+        ).consume()
+        return True
+
     def heartbeat(self, attempt: Attempt) -> bool:
         with self.driver.session(database=self.database) as session:
             return session.execute_write(self._heartbeat, attempt)

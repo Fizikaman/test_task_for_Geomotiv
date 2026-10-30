@@ -56,12 +56,11 @@ Backoff: `retry_backoff_seconds × 2^(attempt - 1)` (2 и 4 секунды по 
 не сохраняют документы, ответы провайдера или tokens в Celery result backend.
 
 Celery retry publication не атомарна с Neo4j. Если публикация retry не удалась,
-pending Outbox остаётся. Отдельный dispatcher, восстановление queued/expired
-jobs и обработка потерянной доставки относятся к **P16**. До реализации P16
-нельзя гарантировать автоматическое восстановление таких jobs. Занятая lease
-подтверждается как duplicate; если владелец затем погиб, восстановление тоже
-требует P16. Уже отправленные дубликаты безопасны благодаря durable status,
-available_at и fencing. Внешние LLM-вызовы не имеют exactly-once гарантии.
+pending Outbox остаётся. Для доставки и восстановления queued/expired jobs
+нужно запустить отдельный [dispatcher P16](dispatcher.md). Занятая lease
+подтверждается как duplicate; если владелец затем погиб, dispatcher восстановит
+задание после истечения lease. Уже отправленные дубликаты безопасны благодаря
+durable status, available_at и fencing. Внешние LLM-вызовы не имеют exactly-once гарантии.
 
 ## Время и доставка
 
