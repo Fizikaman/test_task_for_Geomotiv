@@ -53,6 +53,26 @@ class LLMError(Exception):
         self.retryable = retryable
 
 
+class Usage(DTO):
+    prompt_tokens: int = Field(ge=0)
+    completion_tokens: int = Field(ge=0)
+    total_tokens: int = Field(ge=0)
+
+
+class GenerationResult[T: BaseModel](DTO):
+    result: T
+    requested_model: Text
+    model: Text | None = None
+    usage: Usage | None = None
+
+
+class _ProviderUsage(BaseModel):
+    # Providers can add cache/reasoning details; retain the common counters.
+    prompt_tokens: int = Field(ge=0)
+    completion_tokens: int = Field(ge=0)
+    total_tokens: int = Field(ge=0)
+
+
 class _Message(BaseModel):
     content: str | None = None
     refusal: str | None = None
@@ -66,6 +86,8 @@ class _Choice(BaseModel):
 
 class _Completion(BaseModel):
     choices: list[_Choice] = Field(min_length=1, max_length=1)
+    model: Text | None = None
+    usage: _ProviderUsage | None = None
 
 
 class ChatCompletionsLLM:
@@ -111,6 +133,11 @@ class ChatCompletionsLLM:
     async def generate[T: BaseModel](
         self, request: GenerationRequest, response_model: type[T]
     ) -> T:
+        return (await self.generate_with_metadata(request, response_model)).result
+
+    async def generate_with_metadata[T: BaseModel](
+        self, request: GenerationRequest, response_model: type[T]
+    ) -> GenerationResult[T]:
         settings = self._settings
         has_images = any(isinstance(block, ImageBlock) for block in request.content)
         model = settings.vision_model if has_images else settings.text_model
@@ -213,4 +240,9 @@ class ChatCompletionsLLM:
             pass
         if result is None:
             raise LLMError("extraction_invalid")
-        return result
+        return GenerationResult(
+            result=result,
+            requested_model=model,
+            model=completion.model,
+            usage=Usage(**completion.usage.model_dump()) if completion.usage else None,
+        )

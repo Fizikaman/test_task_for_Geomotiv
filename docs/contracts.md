@@ -216,6 +216,8 @@ page_default ≤ page_max.
 | pdf_memory_bytes | 536870912 |
 | pdf_timeout_seconds | 30 |
 | chunks / llm_calls | 20 / 20 |
+| llm_concurrency | 2 |
+| llm_input_bytes / llm_total_input_bytes | 16000000 / 64000000 |
 | chunk_chars / chunk_overlap_chars | 8000 / 800 |
 | prepared_chars | 160000 |
 | processing_seconds / provider_timeout_seconds | 300 / 30 |
