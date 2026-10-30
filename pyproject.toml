@@ -56,4 +56,7 @@ preset = "strict"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
-markers = ["integration: requires the isolated Geomotiv test Neo4j (--neo4j)"]
+markers = [
+    "integration: requires isolated infrastructure (--neo4j or --infrastructure)",
+    "infrastructure: P20 real Neo4j/Redis/dispatcher/worker (--infrastructure)",
+]

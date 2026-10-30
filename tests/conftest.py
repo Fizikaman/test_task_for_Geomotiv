@@ -23,6 +23,9 @@ def llm_settings() -> LLMSettings:
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption("--neo4j", action="store_true", help="Use isolated test Compose")
+    parser.addoption(
+        "--infrastructure", action="store_true", help="Run isolated P20 Compose suite"
+    )
 
 
 @pytest.fixture(scope="session")

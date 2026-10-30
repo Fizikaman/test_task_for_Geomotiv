@@ -1,0 +1,92 @@
+name: geomotiv-p20-test
+
+x-app: &app
+  image: geomotiv-app:p20-test
+  build: .
+  user: '${P20_TEST_UID:-10001}:${P20_TEST_GID:-10001}'
+  environment: &environment
+    ARTICLE_GRAPH_NEO4J__URI: bolt://neo4j:7687
+    ARTICLE_GRAPH_NEO4J__PASSWORD: geomotiv-p20-test-only
+    ARTICLE_GRAPH_LLM__BASE_URL: http://doubles:8080/v1
+    ARTICLE_GRAPH_LLM__API_KEY: p20-no-paid-api
+    ARTICLE_GRAPH_LLM__TEXT_MODEL: p20-text
+    ARTICLE_GRAPH_LLM__OUTPUT_MODE: json_object
+    ARTICLE_GRAPH_LLM__TIMEOUT_SECONDS: 60
+    ARTICLE_GRAPH_OLLAMA__BASE_URL: http://doubles:8080
+    ARTICLE_GRAPH_OLLAMA__MODEL: p20-test:v1
+    ARTICLE_GRAPH_OLLAMA__DIGEST: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+    ARTICLE_GRAPH_OLLAMA__DIMENSIONS: 1024
+    ARTICLE_GRAPH_WORKER__BROKER_URL: redis://redis:6379/0
+    ARTICLE_GRAPH_WORKER__BLOB_ROOT: /data/blobs
+    ARTICLE_GRAPH_WORKER__LEASE_SECONDS: 20
+    ARTICLE_GRAPH_WORKER__HEARTBEAT_SECONDS: 2
+    ARTICLE_GRAPH_DISPATCHER__BROKER_URL: redis://redis:6379/0
+    ARTICLE_GRAPH_DISPATCHER__POLL_SECONDS: 0.1
+    ARTICLE_GRAPH_DISPATCHER__RETRY_SECONDS: 1
+    ARTICLE_GRAPH_DISPATCHER__RETRY_MAX_SECONDS: 2
+    ARTICLE_GRAPH_DISPATCHER__REDELIVERY_SECONDS: 3
+    ARTICLE_GRAPH_LIMITS__PROVIDER_TIMEOUT_SECONDS: 60
+    ARTICLE_GRAPH_LIMITS__RETRY_BACKOFF_SECONDS: 1
+  volumes:
+    - ./.cache/p20-blobs:/data/blobs
+  init: true
+
+services:
+  neo4j:
+    image: neo4j:5.26.0-community
+    networks: [default, test-control]
+    environment:
+      NEO4J_AUTH: neo4j/geomotiv-p20-test-only
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+    ports: ['127.0.0.1:27687:7687']
+    healthcheck:
+      test: [CMD-SHELL, "cypher-shell -u neo4j -p geomotiv-p20-test-only 'RETURN 1' >/dev/null 2>&1"]
+      interval: 2s
+      timeout: 10s
+      retries: 60
+  redis:
+    image: redis:8.2.2-alpine
+    networks: [default, test-control]
+    command: [redis-server, --appendonly, 'yes', --appendfsync, always]
+    ports: ['127.0.0.1:26379:6379']
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+  doubles:
+    <<: *app
+    networks: [default, test-control]
+    command: [python, /tests/p20_doubles.py]
+    volumes: ['./tests:/tests:ro']
+    ports: ['127.0.0.1:28080:8080']
+    healthcheck:
+      test: [CMD, python, -c, "from urllib.request import urlopen; urlopen('http://localhost:8080/control', timeout=2).close()"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+  init-schema:
+    <<: *app
+    command: [init-schema]
+    depends_on:
+      neo4j: {condition: service_healthy}
+  worker:
+    <<: *app
+    command: [celery, -A, 'article_graph.celery_app:app', worker, --loglevel=WARNING, --concurrency=2, --hostname=p20@worker]
+    depends_on:
+      init-schema: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+      doubles: {condition: service_healthy}
+  dispatcher:
+    <<: *app
+    command: [python, -m, article_graph.dispatcher]
+    depends_on:
+      init-schema: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+
+networks:
+  default:
+    internal: true
+  test-control: {}

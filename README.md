@@ -4,6 +4,11 @@
 `docker compose up -d --build`. Автоматические init схемы/модели, healthchecks,
 сохранность данных и изолированная приёмка описаны в [docs/docker.md](docs/docker.md).
 
+Сквозные тесты отказов и обновлений P20 с настоящими Neo4j/Redis/dispatcher/worker:
+`uv run --frozen pytest -m infrastructure --infrastructure`.
+Контур и очистка создаются автоматически, LLM/Ollama заменены HTTP doubles;
+команду можно повторять без ручной чистки. Подробнее: [docs/integration.md](docs/integration.md).
+
 Минимальный API на обычном CPython **3.15.2**. Для будущих Docker/CI использовать
 ту же ветку 3.15, без free-threaded/JIT. Реализованы каркас API, DTO, схема Neo4j
 и авторизация с ротацией Refresh.
