@@ -4,6 +4,33 @@
 `docker compose up -d --build`. Автоматические init схемы/модели, healthchecks,
 сохранность данных и изолированная приёмка описаны в [docs/docker.md](docs/docker.md).
 
+## Настройка LLM в `.env`
+
+Скопируйте `.env.example` в `.env`, если локальный файл ещё не создан, и заполните
+первые строки. Например, для DeepSeek:
+
+```dotenv
+ARTICLE_GRAPH_LLM__BASE_URL=https://api.deepseek.com
+ARTICLE_GRAPH_LLM__API_KEY=your-provider-api-key
+ARTICLE_GRAPH_LLM__TEXT_MODEL=deepseek-flash
+ARTICLE_GRAPH_LLM__OUTPUT_MODE=json_object
+```
+
+`TEXT_MODEL` — точный идентификатор модели в API выбранного провайдера,
+а `API_KEY` — ваш настоящий ключ, заменяющий placeholder. Для другого провайдера
+нужно изменить URL и идентификатор модели и указать поддерживаемый JSON mode.
+Это пример ручной настройки: сервис не выбирает DeepSeek автоматически.
+URL/model и JSON mode сверены с [документацией DeepSeek](https://api-docs.deepseek.com/)
+и [JSON Output](https://api-docs.deepseek.com/guides/json_mode/); успешный live-прогон
+этого проекта с провайдером пока не выполнен.
+
+Для PDF и изображений дополнительно задайте `ARTICLE_GRAPH_LLM__VISION_MODEL`:
+точный идентификатор модели того же API, поддерживающей изображения через
+`image_url` с data URL. Текстовая модель автоматически вместо неё не используется.
+Реальные ключи храните только в локальном `.env`, который исключён из Git.
+Ключи приложения и пароль Neo4j в `.env.example` уже заданы для локальной
+демонстрации; для других развёртываний замените публичные значения своими.
+
 Сквозные тесты отказов и обновлений P20 с настоящими Neo4j/Redis/dispatcher/worker:
 `uv run --frozen pytest -m infrastructure --infrastructure`.
 Контур и очистка создаются автоматически, LLM/Ollama заменены HTTP doubles;
@@ -23,8 +50,8 @@ HTTP E2E P21: `uv run --frozen pytest -m e2e --e2e`.
 ```powershell
 uv sync --frozen
 Copy-Item .env.example .env
-# Задать три разных случайных секрета длиной не менее 32 символов:
-# ARTICLE_GRAPH_APP_TOKEN, ARTICLE_GRAPH_JWT_ACCESS_KEY, ARTICLE_GRAPH_JWT_REFRESH_KEY.
+# Заполнить настройки LLM, как в примере выше.
+# Вне локальной демонстрации заменить публичные credentials своими.
 uv run --frozen article-graph
 ```
 
