@@ -16,6 +16,7 @@ dependencies = [
     "pydantic-settings==2.16.2",
     "pyjwt==2.15.1",
     "pypdfium2==5.14.0",
+    "python-multipart==0.0.32",
     "uvicorn==0.54.0",
 ]
 

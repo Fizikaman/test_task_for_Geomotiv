@@ -1,5 +1,6 @@
 """Environment configuration, validated before the application is served."""
 
+from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
 
@@ -145,6 +146,7 @@ class Settings(BaseSettings):
     jwt_issuer: str = Field(default="article-graph", min_length=1)
     jwt_audience: str = Field(default="article-graph-api", min_length=1)
     app_id: str = Field(default="article-graph-app", min_length=1)
+    blob_root: Path = Path(".data/blobs")
     limits: Limits = Field(default_factory=Limits)
     neo4j: Neo4jSettings = Field(default_factory=Neo4jSettings)
     llm: LLMSettings
